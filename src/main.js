@@ -6,6 +6,7 @@
 import { LW, LH, TILE, MAPW, MAPH, WPX, HPX, cv, X, reduce, C } from './core/constants.js';
 import { hash, clamp, lerp, pick } from './core/math.js';
 import { LEAF_LINDEN, LEAF_OAK, canopy, px, dot, shadow, fit } from './core/canvas.js';
+import { G } from './core/state.js';
 
 const LOADSCREEN="assets/images/loadscreen.jpg";
 
@@ -495,7 +496,7 @@ function bindPad(id,key){ const el=document.getElementById(id);
   el.addEventListener('touchstart',dn,{passive:false}); el.addEventListener('touchend',up); el.addEventListener('mousedown',dn); el.addEventListener('mouseup',up); el.addEventListener('mouseleave',up);
 }
 bindPad('pUp','w');bindPad('pDown','s');bindPad('pLeft','a');bindPad('pRight','d');bindPad('pA','e');
-document.getElementById('pInv').addEventListener('click',e=>{e.preventDefault(); if(state==='play'||invOpen) toggleInv();});
+document.getElementById('pInv').addEventListener('click',e=>{e.preventDefault(); if(G.state==='play'||invOpen) toggleInv();});
 // Berlinodex-Icon als Sprite (Vorlage) auf den Buttons statt Emoji
 (function(){
   const ic=document.createElement('canvas'); ic.width=52; ic.height=54; const icc=ic.getContext('2d'); icc.imageSmoothingEnabled=false; drawBerlinodexIcon(icc,3,3);
@@ -504,37 +505,37 @@ document.getElementById('pInv').addEventListener('click',e=>{e.preventDefault();
   const di=document.createElement('div'); di.id='dexIcon';
   di.style.cssText='position:fixed;right:12px;top:12px;width:46px;height:48px;z-index:36;cursor:pointer;image-rendering:pixelated;background:url('+url+') center/contain no-repeat;filter:drop-shadow(0 2px 3px rgba(0,0,0,.6));';
   document.body.appendChild(di);
-  di.addEventListener('click',e=>{e.preventDefault(); if(state==='play'&&!invOpen) openDex(); else if(state==='dex') closeDex();});
+  di.addEventListener('click',e=>{e.preventDefault(); if(G.state==='play'&&!invOpen) openDex(); else if(G.state==='dex') closeDex();});
 })();
-document.getElementById('pDex').addEventListener('click',e=>{e.preventDefault(); if(state==='play'&&!invOpen) openDex(); else if(state==='dex') closeDex();});
-document.getElementById('pTeam').addEventListener('click',e=>{e.preventDefault(); if(state==='play'&&!invOpen) openTeam(); else if(state==='team') closeTeam();});
+document.getElementById('pDex').addEventListener('click',e=>{e.preventDefault(); if(G.state==='play'&&!invOpen) openDex(); else if(G.state==='dex') closeDex();});
+document.getElementById('pTeam').addEventListener('click',e=>{e.preventDefault(); if(G.state==='play'&&!invOpen) openTeam(); else if(G.state==='team') closeTeam();});
 
 // --- Tap/Klick zum Weiterschalten (Handy): Dialogbox ODER Spielfeld antippen ---
 let lastTapT=0;
 function tapProgress(e){ if(e&&e.preventDefault)e.preventDefault(); const now=Date.now(); if(now-lastTapT<230) return; lastTapT=now;
-  if(state==='dialog'){ if(choiceState) return; advanceDialog(); return; }
-  if(state==='evolve'){ onKey('e'); return; }
-  if(state==='battle'){ onKey('e'); return; }
-  if(state==='play'){ onKey('e'); return; }
+  if(G.state==='dialog'){ if(choiceState) return; advanceDialog(); return; }
+  if(G.state==='evolve'){ onKey('e'); return; }
+  if(G.state==='battle'){ onKey('e'); return; }
+  if(G.state==='play'){ onKey('e'); return; }
 }
 function canvasXY(e){ const r=cv.getBoundingClientRect(); const t=(e.touches&&e.touches[0])||(e.changedTouches&&e.changedTouches[0])||e;
   return { x:(t.clientX-r.left)/r.width*LW, y:(t.clientY-r.top)/r.height*LH }; }
 function tapCanvas(e){ if(e&&e.preventDefault)e.preventDefault(); const now=Date.now(); if(now-lastTapT<230) return; lastTapT=now;
-  if(state==='team'){ closeTeam(); return; }
-  if(state==='catchChoice'){ const p=canvasXY(e); const bw=224,bh=112,bx=(LW-bw)/2,by=(LH-bh)/2;
+  if(G.state==='team'){ closeTeam(); return; }
+  if(G.state==='catchChoice'){ const p=canvasXY(e); const bw=224,bh=112,bx=(LW-bw)/2,by=(LH-bh)/2;
     if(p.y>=by+bh-22&&p.y<=by+bh-5){ if(p.x>=bx+8&&p.x<=bx+110){ catchChoose(true); return; } if(p.x>=bx+bw-110&&p.x<=bx+bw-8){ catchChoose(false); return; } }
     return;
   }
-  if(state==='starter'){ const p=canvasXY(e);
-    for(let i=0;i<3;i++){ const x=STC.x0+i*(STC.cw+STC.gap); if(p.x>=x&&p.x<=x+STC.cw&&p.y>=STC.y&&p.y<=STC.y+STC.ch){ starterIndex=i; starterPick=i; confirmIdx=0; state='starterConfirm'; return; } }
+  if(G.state==='starter'){ const p=canvasXY(e);
+    for(let i=0;i<3;i++){ const x=STC.x0+i*(STC.cw+STC.gap); if(p.x>=x&&p.x<=x+STC.cw&&p.y>=STC.y&&p.y<=STC.y+STC.ch){ starterIndex=i; starterPick=i; confirmIdx=0; G.state='starterConfirm'; return; } }
     return;
   }
-  if(state==='starterConfirm'){ const p=canvasXY(e); const bw=210,bh=74,bx=(LW-bw)/2,by=(LH-bh)/2;
-    if(p.y>=by+48&&p.y<=by+65){ if(p.x>=bx+8&&p.x<=bx+96){ grantStarter(STARTERS[starterPick].id); return; } if(p.x>=bx+bw-96&&p.x<=bx+bw-8){ state='starter'; return; } }
+  if(G.state==='starterConfirm'){ const p=canvasXY(e); const bw=210,bh=74,bx=(LW-bw)/2,by=(LH-bh)/2;
+    if(p.y>=by+48&&p.y<=by+65){ if(p.x>=bx+8&&p.x<=bx+96){ grantStarter(STARTERS[starterPick].id); return; } if(p.x>=bx+bw-96&&p.x<=bx+bw-8){ G.state='starter'; return; } }
     return;
   }
-  if(state==='dexEntry'){ closeDexEntry(); return; }
-  if(state==='dex'){ const p=canvasXY(e);
+  if(G.state==='dexEntry'){ closeDexEntry(); return; }
+  if(G.state==='dex'){ const p=canvasXY(e);
     if(p.y<20 && p.x>LW-30){ closeDex(); return; }                 // × schliessen
     if(p.x<24 && p.y>76 && p.y<104){ dexKey('arrowleft'); return; } // ‹ Pfeil
     if(p.x>LW-24 && p.y>76 && p.y<104){ dexKey('arrowright'); return; } // › Pfeil
@@ -545,10 +546,10 @@ function tapCanvas(e){ if(e&&e.preventDefault)e.preventDefault(); const now=Date
       if(dexSeen.has(id)||dexCaught.has(id)){ openDexEntry(id); return; } } }
     return;
   }
-  if(state==='dialog'){ if(choiceState) return; advanceDialog(); return; }
-  if(state==='evolve'){ onKey('e'); return; }
-  if(state==='battle'){ onKey('e'); return; }
-  if(state==='play'){ onKey('e'); return; }
+  if(G.state==='dialog'){ if(choiceState) return; advanceDialog(); return; }
+  if(G.state==='evolve'){ onKey('e'); return; }
+  if(G.state==='battle'){ onKey('e'); return; }
+  if(G.state==='play'){ onKey('e'); return; }
 }
 const _dlgEl=document.getElementById('dialog');
 _dlgEl.addEventListener('touchstart',tapProgress,{passive:false}); _dlgEl.addEventListener('mousedown',tapProgress);
@@ -557,8 +558,6 @@ cv.addEventListener('touchstart',tapCanvas,{passive:false}); cv.addEventListener
 /* ======================================================================
    STATE — Title / Banner / Dialog / Toast / Encounter
    ====================================================================== */
-let state='title';     // title | play | dialog
-let scene='town';      // town | efes | eiche | chb | cafe | wohnung
 let sitting=null;      // {bx,by} wenn der Spieler auf einer Bank sitzt
 let hasLeo=false;      // Leo (Hazes Katze) als geliehener Begleiter nach Sörens Quest
 let dialogQ=[], dialogWho='';
@@ -570,15 +569,15 @@ function setBanner(name,sub){ document.getElementById('bName').textContent=name;
 function showBanner(){ banner.classList.add('show'); setTimeout(()=>banner.classList.remove('show'),2400); }
 function toast(msg,ms){ toastEl.textContent=msg; toastEl.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>toastEl.classList.remove('show'), ms||1800); }
 let dialogOnEnd=null;
-function openDialog(who,lines,onEnd){ state='dialog'; dialogWho=who;
+function openDialog(who,lines,onEnd){ G.state='dialog'; dialogWho=who;
   dialogQ=lines.map(l=> (typeof l==='string')?{who:who,text:l}:{who:(l.who??l.w??who),text:(l.text??l.t)} );
   dialogOnEnd=onEnd||null;
   const f=dialogQ.shift(); dWho.textContent=f.who; dText.textContent=f.text; dlg.style.display='block'; }
 function advanceDialog(){ if(dialogQ.length){ const n=dialogQ.shift(); dWho.textContent=n.who; dText.textContent=n.text; }
-  else { dlg.style.display='none'; state='play'; const cb=dialogOnEnd; dialogOnEnd=null; if(cb) cb(); } }
+  else { dlg.style.display='none'; G.state='play'; const cb=dialogOnEnd; dialogOnEnd=null; if(cb) cb(); } }
 // --- Choice-Dialog ---
 let choiceState=null; const dChoicesEl=document.getElementById('dChoices');
-function openChoice(who,text,choices){ state='dialog'; dialogQ=[]; dialogOnEnd=null; dWho.textContent=who; dText.textContent=text; dlg.style.display='block'; choiceState={choices,idx:0}; renderChoices(); }
+function openChoice(who,text,choices){ G.state='dialog'; dialogQ=[]; dialogOnEnd=null; dWho.textContent=who; dText.textContent=text; dlg.style.display='block'; choiceState={choices,idx:0}; renderChoices(); }
 function renderChoices(){ if(!dChoicesEl) return; if(!choiceState){ dChoicesEl.style.display='none'; dChoicesEl.innerHTML=''; return; } dChoicesEl.innerHTML=''; dChoicesEl.style.display='block';
   choiceState.choices.forEach((c,i)=>{ const b=document.createElement('div'); b.className='dchoice'+(i===choiceState.idx?' sel':''); b.textContent=(i+1)+'. '+c.label;
     const pick=(e)=>{ if(e){e.preventDefault&&e.preventDefault(); e.stopPropagation&&e.stopPropagation();} pickChoice(i); };
@@ -769,25 +768,25 @@ function passiTalk(){
 }
 
 function onKey(k){
-  if(k==='p' && inventory.includes('bluePunisher') && (state==='play'||state==='battle')){ popPunisher(); return; }
-  if(state==='team'){ teamKey(k); return; }
-  if(state==='catchChoice'){ catchKey(k); return; }
-  if(state==='evolve'){ evolveKey(k); return; }
-  if(state==='cutscene'||state==='reveal') return;
-  if(state==='starter'||state==='starterConfirm'){ starterKey(k); return; }
-  if(state==='dex'){ dexKey(k); return; }
-  if(state==='dexEntry'){ dexEntryKey(k); return; }
-  if(state==='battle'){ battleKey(k); return; }
-  if(state==='title'){ if(k==='enter'||k===' '||k==='e'){ startGame(); } return; }
-  if(k==='b' && state==='play' && !invOpen){ openDex(); return; }
-  if(k==='t' && state==='play' && !invOpen){ openTeam(); return; }
-  if(k==='i' && (state==='play'||state==='dialog')){ if(state==='play') toggleInv(); return; }
-  if(state==='dialog'){ if(choiceState){ if(k==='arrowdown'||k==='s') moveChoice(1); else if(k==='arrowup'||k==='w') moveChoice(-1); else if(k==='1') pickChoice(0); else if(k==='2') pickChoice(1); else if(k==='3') pickChoice(2); else if(k==='e'||k===' '||k==='enter') pickChoice(choiceState.idx); return; } if(k==='e'||k===' '||k==='enter') advanceDialog(); return; }
-  if(state==='play'){ if(invOpen) return; if(k==='e'||k===' ') tryInteract(); }
+  if(k==='p' && inventory.includes('bluePunisher') && (G.state==='play'||G.state==='battle')){ popPunisher(); return; }
+  if(G.state==='team'){ teamKey(k); return; }
+  if(G.state==='catchChoice'){ catchKey(k); return; }
+  if(G.state==='evolve'){ evolveKey(k); return; }
+  if(G.state==='cutscene'||G.state==='reveal') return;
+  if(G.state==='starter'||G.state==='starterConfirm'){ starterKey(k); return; }
+  if(G.state==='dex'){ dexKey(k); return; }
+  if(G.state==='dexEntry'){ dexEntryKey(k); return; }
+  if(G.state==='battle'){ battleKey(k); return; }
+  if(G.state==='title'){ if(k==='enter'||k===' '||k==='e'){ startGame(); } return; }
+  if(k==='b' && G.state==='play' && !invOpen){ openDex(); return; }
+  if(k==='t' && G.state==='play' && !invOpen){ openTeam(); return; }
+  if(k==='i' && (G.state==='play'||G.state==='dialog')){ if(G.state==='play') toggleInv(); return; }
+  if(G.state==='dialog'){ if(choiceState){ if(k==='arrowdown'||k==='s') moveChoice(1); else if(k==='arrowup'||k==='w') moveChoice(-1); else if(k==='1') pickChoice(0); else if(k==='2') pickChoice(1); else if(k==='3') pickChoice(2); else if(k==='e'||k===' '||k==='enter') pickChoice(choiceState.idx); return; } if(k==='e'||k===' '||k==='enter') advanceDialog(); return; }
+  if(G.state==='play'){ if(invOpen) return; if(k==='e'||k===' ') tryInteract(); }
 }
-document.getElementById('title').addEventListener('click',()=>{ if(state==='title') startGame(); });
+document.getElementById('title').addEventListener('click',()=>{ if(G.state==='title') startGame(); });
 
-function startGame(){ document.getElementById('title').style.display='none'; state='play'; showBanner(); toast('Zehlendorf Mitte — ein kleiner, stiller Bezirk.',2600); }
+function startGame(){ document.getElementById('title').style.display='none'; G.state='play'; showBanner(); toast('Zehlendorf Mitte — ein kleiner, stiller Bezirk.',2600); }
 
 /* Interaktion: Punkt vor dem Spieler prüfen */
 function frontPoint(){ return {
@@ -796,7 +795,7 @@ function frontPoint(){ return {
 
 function tryInteract(){
   const {fx,fy}=frontPoint();
-  if(scene==='efes'){
+  if(G.scene==='efes'){
     // Dönermann (über die Theke, nach oben schauend)
     if(fy<108 && player.x+8>54 && player.x+8<266){ talkDoener(); return; }
     // Ausgang
@@ -804,7 +803,7 @@ function tryInteract(){
     openDialog('Efes Grill',['Drinnen riecht es nach Knoblauchsoße und Holzkohle. Der Spieß dreht sich, ewig.']);
     return;
   }
-  if(scene==='eiche'){
+  if(G.scene==='eiche'){
     // Sören (oben, mittig) ansprechen
     if(player.dir==='up' && player.y<126 && player.x+8>112 && player.x+8<208){ talkSoeren(); return; }
     // Nach dem Aufstieg: rechts hinten wieder hoch ins Obergeschoss
@@ -814,37 +813,37 @@ function tryInteract(){
     openDialog('Eiche',['Drinnen ist es warm und dämmrig. Wurzeln, Ranken, Kerzenlicht. Es riecht nach Erde, altem Papier und... etwas Verbranntem.']);
     return;
   }
-  if(scene==='eicheOben'){
+  if(G.scene==='eicheOben'){
     if(player.dir==='up' && player.y<110 && player.x+8>110 && player.x+8<210){ talkSoerenOben(); return; }
     if(player.y>=156 && Math.abs(player.x+8-160)<24){ exitEicheOben(); return; }
     openDialog('Obergeschoss',['Sörens Geheimkammer. Überall Schriften, Bücher, Notizen. Unter Glaskuppeln ruhen drei Kapseln.']);
     return;
   }
-  if(scene==='cafe'){
+  if(G.scene==='cafe'){
     if(player.dir==='up' && player.y<92 && player.x+8>30 && player.x+8<150){ talkBarista(); return; }
     if(player.y>=150 && Math.abs(player.x+8-160)<22){ exitCafe(); return; }
     for(const n of cafeNpcs){ if(n.counter) continue; if(Math.abs(n.x+8-fx)<13 && Math.abs(n.y+16-fy)<15){ n.dir=(player.x<n.x?'left':'right'); openDialog(n.who,n.lines); return; } }
     for(const it of cafeInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ openDialog(it.who,it.lines); return; } }
     return;
   }
-  if(scene==='wohnung'){
+  if(G.scene==='wohnung'){
     if(player.y>=282 && Math.abs(player.x+8-160)<24){ exitWohnung(); return; }
     for(const n of wohnungNpcs){ if(Math.abs(n.x+8-fx)<14 && Math.abs(n.y+16-fy)<16){ openDialog(n.who,n.lines); return; } }
     for(const it of wohnungInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ openDialog(it.who,it.lines); return; } }
     return;
   }
-  if(scene==='chb'){
+  if(G.scene==='chb'){
     for(const d of chbDoors){ if(fx>=d.x-2&&fx<=d.x+d.w+2&&fy>=d.y-2&&fy<=d.y+d.h+2){ if(d.to==='town') exitCHB(); else if(d.to==='cafe') enterCafe(); else if(d.to==='wohnung') enterWohnung(); else if(d.to==='mitte') enterMitte(); return; } }
     for(const n of chbNpcs){ if(Math.abs(n.x+8-fx)<12 && Math.abs(n.y+16-fy)<14){ n.dir=(player.x<n.x?'left':'right'); openDialog(n.who,n.lines); return; } }
     for(const it of chbInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ if(it.who==='Bank'){ sitDown(it); } else { openDialog(it.who,it.lines); } return; } }
     return;
   }
-  if(scene==='kl'){
+  if(G.scene==='kl'){
     for(const d of klDoors){ if(fx>=d.x-2&&fx<=d.x+d.w+2&&fy>=d.y-2&&fy<=d.y+d.h+2){ if(d.to==='town') exitKL(); return; } }
     for(const it of klInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ if(it.who==='Sprungbaum'){ startKLJump(); } else { openDialog(it.who,it.lines); } return; } }
     return;
   }
-  if(scene==='club'){
+  if(G.scene==='club'){
     for(const d of clubDoors){ if(fx>=d.x-2&&fx<=d.x+d.w+2&&fy>=d.y-2&&fy<=d.y+d.h+2){ if(d.to==='mitte') exitClub(); return; } }
     for(const n of clubNpcs){ if(Math.abs(n.x+8-fx)<13 && Math.abs(n.y+16-fy)<16){ n.dir=(player.x<n.x?'left':'right');
       if(n.who==='Gnarley Gustav'){ questGustav=true; openDialog(n.who,n.lines); }
@@ -853,7 +852,7 @@ function tryInteract(){
     for(const it of clubInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ if(it.who==='Karussell'){ sitDown(it); } else { openDialog(it.who,it.lines); } return; } }
     return;
   }
-  if(scene==='mitte'){
+  if(G.scene==='mitte'){
     for(const d of mitDoors){ if(fx>=d.x-2&&fx<=d.x+d.w+2&&fy>=d.y-2&&fy<=d.y+d.h+2){ if(d.to==='chb') exitMitte(); else if(d.to==='club'){ if(clubUnlocked) enterClub(); else gateStart(); } return; } }
     for(const n of mitNpcs){ if(Math.abs(n.x+8-fx)<12 && Math.abs(n.y+16-fy)<14){ n.dir=(player.x<n.x?'left':'right'); if(n.who==='Tuersteherin'){ gateStart(); } else openDialog(n.who,n.lines); return; } }
     for(const it of mitInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ openDialog(it.who,it.lines); return; } }
@@ -920,16 +919,16 @@ let camx=0,camy=0, T=0;
 function update(dt){
   if(loveAura>0) loveAura-=dt;
   if(gateWalk>0){ gateWalk-=dt; player.y-=20*dt; player.step=(player.step||0)+dt*8; player.frame=1+((player.step|0)%2); T+=dt; if(gateWalk<=0){ player.frame=0; enterClub(); } return; }
-  if(state==='team'||state==='catchChoice'){ T+=dt; return; }
-  if(state==='cutscene'){ T+=dt; stepCutscene(dt); return; }
-  if(state==='reveal'){ T+=dt; stepReveal(dt); return; }
-  if(state==='starter'||state==='starterConfirm'){ T+=dt; return; }
-  if(state==='dex'){ T+=dt; return; }
-  if(state==='dexEntry'){ T+=dt; return; }
-  if(state==='evolve'){ T+=dt; updateEvolve(dt); return; }
-  if(state==='battle'){ T+=dt; updateBattle(dt); return; }
+  if(G.state==='team'||G.state==='catchChoice'){ T+=dt; return; }
+  if(G.state==='cutscene'){ T+=dt; stepCutscene(dt); return; }
+  if(G.state==='reveal'){ T+=dt; stepReveal(dt); return; }
+  if(G.state==='starter'||G.state==='starterConfirm'){ T+=dt; return; }
+  if(G.state==='dex'){ T+=dt; return; }
+  if(G.state==='dexEntry'){ T+=dt; return; }
+  if(G.state==='evolve'){ T+=dt; updateEvolve(dt); return; }
+  if(G.state==='battle'){ T+=dt; updateBattle(dt); return; }
   if(invOpen){ T+=dt; return; }
-  if(state==='play' && scene==='town'){
+  if(G.state==='play' && G.scene==='town'){
     movePlayer(dt,blocked);
     // Eingänge: reinlaufen (kurze Sperre nach dem Rausgehen)
     if(enterCool>0){ enterCool-=dt; }
@@ -938,27 +937,27 @@ function update(dt){
     }
     if(encCool>0) encCool-=dt;
     checkEncounter();
-  } else if(state==='play' && scene==='efes'){
+  } else if(G.state==='play' && G.scene==='efes'){
     movePlayer(dt,blockedEfes);
     // Ausgang: auf die Fußmatte unten treten
     if(player.y>=132 && Math.abs(player.x+8-160)<26){ exitEfes(); }
-  } else if(state==='play' && scene==='eiche'){
+  } else if(G.state==='play' && G.scene==='eiche'){
     movePlayer(dt,blockedEiche);
     if(player.y>=128 && Math.abs(player.x+8-160)<28){ exitEiche(); }
-  } else if(state==='play' && scene==='eicheOben'){
+  } else if(G.state==='play' && G.scene==='eicheOben'){
     movePlayer(dt,blockedEicheOben);
     if(enterCool>0){ enterCool-=dt; }
     else if(player.y>=156 && Math.abs(player.x+8-160)<24){ exitEicheOben(); }
-  } else if(state==='play' && scene==='cafe'){
+  } else if(G.state==='play' && G.scene==='cafe'){
     movePlayer(dt,blockedCafe);
     if(enterCool>0){ enterCool-=dt; }
     else if(player.y>=150 && Math.abs(player.x+8-160)<22){ exitCafe(); }
     if(!reduce) for(const n of cafeNpcs){ if(n.wander){ n.t+=dt; const off=Math.sin(n.t*0.6)*n.range; const tgt=n.base+off; const old=n.x; n.x+=clamp(tgt-n.x,-14*dt,14*dt); n.dir=n.x>old+0.02?'right':n.x<old-0.02?'left':n.dir; n.frame=Math.abs(n.x-old)>0.05?1+((n.t*5|0)%2):0; } else if(n.play){ n.t+=dt; n.frame=1+((n.t*3|0)%2); } }
-  } else if(state==='play' && scene==='wohnung'){
+  } else if(G.state==='play' && G.scene==='wohnung'){
     movePlayer(dt,blockedWohnung);
     if(enterCool>0){ enterCool-=dt; }
     else if(player.y>=282 && Math.abs(player.x+8-160)<24){ exitWohnung(); }
-  } else if(state==='play' && scene==='chb'){
+  } else if(G.state==='play' && G.scene==='chb'){
     if(sitting){
       if(keys['w']||keys['a']||keys['s']||keys['d']||keys['arrowup']||keys['arrowdown']||keys['arrowleft']||keys['arrowright']) standUp();
     } else {
@@ -969,7 +968,7 @@ function update(dt){
       if(encCool>0) encCool-=dt;
       checkEncounterCHB();
     }
-  } else if(state==='play' && scene==='kl'){
+  } else if(G.state==='play' && G.scene==='kl'){
     if(klJump){ updateKLJump(dt); }
     else {
       movePlayer(dt,blockedKL);
@@ -980,7 +979,7 @@ function update(dt){
       checkEncounterKL();
     }
     klcamx=clamp(player.x+8-LW/2,0,WPX-LW); klcamy=clamp(player.y+16-LH/2,0,HPX-LH);
-  } else if(state==='play' && scene==='mitte'){
+  } else if(G.state==='play' && G.scene==='mitte'){
     movePlayer(dt,blockedMitte);
     if(enterCool>0){ enterCool-=dt; }
     else { const fx=player.x+4, fy=player.y+15;
@@ -988,7 +987,7 @@ function update(dt){
     if(encCool>0) encCool-=dt;
     checkEncounterMitte();
     mitcamx=clamp(player.x+8-LW/2,0,MITPX-LW); mitcamy=clamp(player.y+16-LH/2,0,MITHPX-LH);
-  } else if(state==='play' && scene==='club'){
+  } else if(G.state==='play' && G.scene==='club'){
     if(sitting){
       if(keys['w']||keys['a']||keys['s']||keys['d']||keys['arrowup']||keys['arrowdown']||keys['arrowleft']||keys['arrowright']) standUp();
     } else {
@@ -1001,7 +1000,7 @@ function update(dt){
   }
   if(grassFlash>0) grassFlash-=dt;
   if(healFx>0) healFx-=dt;
-  if(scene==='town'){
+  if(G.scene==='town'){
     if(!reduce) for(const n of npcs){ if(n.wander){ n.t+=dt; const off=Math.sin(n.t*0.6)*18; const tgt=n.base+off;
       const old=n.x; n.x+=clamp(tgt-n.x,-12*dt,12*dt); n.dir = n.x>old+0.02?'right':n.x<old-0.02?'left':n.dir;
       n.frame = Math.abs(n.x-old)>0.05 ? 1+((n.t*5|0)%2) : 0; } }
@@ -1010,15 +1009,15 @@ function update(dt){
     raven.caw+=dt;
     camx=clamp(player.x+8-LW/2,0,WPX-LW); camy=clamp(player.y+16-LH/2,0,HPX-LH);
   }
-  if(scene==='chb'){
+  if(G.scene==='chb'){
     if(!reduce) for(const n of chbNpcs){ if(n.play){ n.t+=dt; n.frame=1+((n.t*3|0)%2); } else if(n.wander){ n.t+=dt; const off=Math.sin(n.t*0.6)*16; const tgt=n.base+off; const old=n.x; n.x+=clamp(tgt-n.x,-12*dt,12*dt); n.dir=n.x>old+0.02?'right':n.x<old-0.02?'left':n.dir; n.frame=Math.abs(n.x-old)>0.05?1+((n.t*5|0)%2):0; } }
     ccamx=clamp(player.x+8-LW/2,0,WPX-LW); ccamy=clamp(player.y+16-LH/2,0,HPX-LH);
   }
-  if(scene==='mitte'){
+  if(G.scene==='mitte'){
     if(!reduce) for(const n of mitNpcs){ if(n.play){ n.t+=dt; n.frame=1+((n.t*3|0)%2); } else if(n.wander){ n.t+=dt; const off=Math.sin(n.t*0.6)*(n.range||16); const tgt=n.base+off; const old=n.x; n.x+=clamp(tgt-n.x,-12*dt,12*dt); n.dir=n.x>old+0.02?'right':n.x<old-0.02?'left':n.dir; n.frame=Math.abs(n.x-old)>0.05?1+((n.t*5|0)%2):0; } }
     mitcamx=clamp(player.x+8-LW/2,0,MITPX-LW); mitcamy=clamp(player.y+16-LH/2,0,MITHPX-LH);
   }
-  if(scene==='club'){
+  if(G.scene==='club'){
     if(!reduce) for(const n of clubNpcs){ if(n.play){ n.t+=dt; n.frame=1+((n.t*4|0)%2); } }
     clubcamx=clamp(player.x+8-LW/2,0,CLUBPX-LW); clubcamy=clamp(player.y+16-LH/2,0,CLUBHPX-LH);
   }
@@ -1030,29 +1029,29 @@ function setDexRes(on){
   if(on){ if(cv.width!==LW*DEXK){ cv.width=LW*DEXK; cv.height=LH*DEXK; } X.setTransform(DEXK,0,0,DEXK,0,0); X.imageSmoothingEnabled=true; cv.style.imageRendering='auto'; }
   else { if(cv.width!==LW){ cv.width=LW; cv.height=LH; } X.setTransform(1,0,0,1,0,0); X.imageSmoothingEnabled=false; cv.style.imageRendering='pixelated'; }
 }
-function render(){ _render(); if(loveAura>0 && (state==='battle'||state==='play')) drawLoveAura(); }
+function render(){ _render(); if(loveAura>0 && (G.state==='battle'||G.state==='play')) drawLoveAura(); }
 function _render(){
-  if(state==='dex'||state==='dexEntry'){ setDexRes(true); if(state==='dex') renderDex(); else renderDexEntry(); return; }
+  if(G.state==='dex'||G.state==='dexEntry'){ setDexRes(true); if(G.state==='dex') renderDex(); else renderDexEntry(); return; }
   setDexRes(false);
-  if(state==='team'){ renderTeam(); return; }
-  if(state==='catchChoice'){ renderCatchChoice(); return; }
-  if(state==='evolve'){ renderEvolve(); return; }
-  if(state==='cutscene'){ if(scene==='eicheOben') renderEicheOben(); else renderEiche(); drawFade(); return; }
-  if(state==='reveal'){ renderEicheOben(); return; }
-  if(state==='starter'){ renderStarterSelect(); return; }
-  if(state==='starterConfirm'){ renderStarterConfirm(); return; }
-  if(state==='dex'){ renderDex(); return; }
-  if(state==='dexEntry'){ renderDexEntry(); return; }
-  if(scene==='battle'){ renderBattle(); return; }
-  if(scene==='efes'){ renderEfes(); return; }
-  if(scene==='eiche'){ renderEiche(); return; }
-  if(scene==='eicheOben'){ renderEicheOben(); return; }
-  if(scene==='cafe'){ renderCafe(); return; }
-  if(scene==='wohnung'){ renderWohnung(); return; }
-  if(scene==='chb'){ renderCHB(); return; }
-  if(scene==='kl'){ renderKL(); return; }
-  if(scene==='mitte'){ renderMitte(); return; }
-  if(scene==='club'){ renderClub(); return; }
+  if(G.state==='team'){ renderTeam(); return; }
+  if(G.state==='catchChoice'){ renderCatchChoice(); return; }
+  if(G.state==='evolve'){ renderEvolve(); return; }
+  if(G.state==='cutscene'){ if(G.scene==='eicheOben') renderEicheOben(); else renderEiche(); drawFade(); return; }
+  if(G.state==='reveal'){ renderEicheOben(); return; }
+  if(G.state==='starter'){ renderStarterSelect(); return; }
+  if(G.state==='starterConfirm'){ renderStarterConfirm(); return; }
+  if(G.state==='dex'){ renderDex(); return; }
+  if(G.state==='dexEntry'){ renderDexEntry(); return; }
+  if(G.scene==='battle'){ renderBattle(); return; }
+  if(G.scene==='efes'){ renderEfes(); return; }
+  if(G.scene==='eiche'){ renderEiche(); return; }
+  if(G.scene==='eicheOben'){ renderEicheOben(); return; }
+  if(G.scene==='cafe'){ renderCafe(); return; }
+  if(G.scene==='wohnung'){ renderWohnung(); return; }
+  if(G.scene==='chb'){ renderCHB(); return; }
+  if(G.scene==='kl'){ renderKL(); return; }
+  if(G.scene==='mitte'){ renderMitte(); return; }
+  if(G.scene==='club'){ renderClub(); return; }
   X.clearRect(0,0,LW,LH);
   // BELOW
   X.drawImage(below, camx,camy,LW,LH, 0,0,LW,LH);
@@ -1161,9 +1160,9 @@ function drawDoener(c,x,y){ x|=0;y|=0;
   px(c,x+5,y+5,1,1,'#1a1410'); px(c,x+10,y+5,1,1,'#1a1410'); // Augen
 }
 
-function enterEfes(){ scene='efes'; player.x=152; player.y=116; player.dir='up'; player.frame=0;
+function enterEfes(){ G.scene='efes'; player.x=152; player.y=116; player.dir='up'; player.frame=0;
   setBanner('Efes Grill','Imbiss · Heilung'); showBanner(); enterCool=0.5; }
-function exitEfes(){ scene='town'; player.x=efesReturn.x; player.y=efesReturn.y; player.dir=efesReturn.dir; player.frame=0;
+function exitEfes(){ G.scene='town'; player.x=efesReturn.x; player.y=efesReturn.y; player.dir=efesReturn.dir; player.frame=0;
   enterCool=0.5; setBanner('Zehlendorf Mitte','Bezirk'); }
 function talkDoener(){
   openDialog('Dönermann',[
@@ -1303,9 +1302,9 @@ function buildCafe(){
 function talkBarista(){
   const n=cafeNpcs[0]; openDialog(n.who,n.lines); toast('Flat White aufs Haus \u2615',2000);
 }
-function enterCafe(){ scene='cafe'; sitting=null; player.x=152; player.y=138; player.dir='up'; player.frame=0;
+function enterCafe(){ G.scene='cafe'; sitting=null; player.x=152; player.y=138; player.dir='up'; player.frame=0;
   setBanner('All About West','Café · Charlottenburg'); showBanner(); enterCool=0.5; }
-function exitCafe(){ scene='chb'; player.x=cafeReturn.x; player.y=cafeReturn.y; player.dir=cafeReturn.dir; player.frame=0;
+function exitCafe(){ G.scene='chb'; player.x=cafeReturn.x; player.y=cafeReturn.y; player.dir=cafeReturn.dir; player.frame=0;
   enterCool=0.5; setBanner('Charlottenburg-Wilmersdorf','Bezirk'); showBanner(); }
 function blockedCafe(nx,ny){ const fx=nx+4,fy=ny+15,fw=8,fh=6;
   if(fx<CAB.x||fy<CAB.y||fx+fw>CAB.x2||fy+fh>CAB.y2) return true;
@@ -1457,9 +1456,9 @@ function buildWohnung(){
      lines:['Eine dunkle Holzvitrine.','Hinter Glas: ein paar alte Bücher, ein Foto, ein Schluessel den keiner mehr zuordnen kann.']}
   );
 }
-function enterWohnung(){ scene='wohnung'; sitting=null; player.x=152; player.y=274; player.dir='up'; player.frame=0;
+function enterWohnung(){ G.scene='wohnung'; sitting=null; player.x=152; player.y=274; player.dir='up'; player.frame=0;
   setBanner('Altbauwohnung','Charlottenburg-Wilmersdorf'); showBanner(); enterCool=0.5; }
-function exitWohnung(){ scene='chb'; sitting=null; player.x=wohnungReturn.x; player.y=wohnungReturn.y; player.dir=wohnungReturn.dir; player.frame=0;
+function exitWohnung(){ G.scene='chb'; sitting=null; player.x=wohnungReturn.x; player.y=wohnungReturn.y; player.dir=wohnungReturn.dir; player.frame=0;
   enterCool=0.5; setBanner('Charlottenburg-Wilmersdorf','Bezirk'); }
 function blockedWohnung(nx,ny){ const fx=nx+4, fy=ny+15, fw=8, fh=5;
   let lo,hi;
@@ -1585,9 +1584,9 @@ function drawSoeren(c,x,y){ x|=0;y|=0;
   c.fillStyle='#1a1410'; c.fillRect(x+5,y+5,1,1); c.fillRect(x+10,y+5,1,1);
 }
 
-function enterEiche(){ scene='eiche'; player.x=152; player.y=120; player.dir='up'; player.frame=0;
+function enterEiche(){ G.scene='eiche'; player.x=152; player.y=120; player.dir='up'; player.frame=0;
   setBanner('Zehlendorf-Eiche','In der Eiche'); showBanner(); enterCool=0.5; }
-function exitEiche(){ scene='town'; player.x=eicheReturn.x; player.y=eicheReturn.y; player.dir=eicheReturn.dir; player.frame=0;
+function exitEiche(){ G.scene='town'; player.x=eicheReturn.x; player.y=eicheReturn.y; player.dir=eicheReturn.dir; player.frame=0;
   enterCool=0.5; setBanner('Zehlendorf Mitte','Bezirk'); }
 
 function giveLeo(){ hasLeo=true; cat.x=eicheReturn.x-4; cat.y=eicheReturn.y+12; cat.dir='up';
@@ -2014,19 +2013,19 @@ let _loadTimer=null;
 function showDistrictLoad(src, after){
   const t=document.getElementById('title'), img=document.getElementById('loadImg'), pill=document.getElementById('startpill');
   img.src=src; if(pill) pill.textContent='laedt...';
-  t.style.display='flex'; state='load';
+  t.style.display='flex'; G.state='load';
   clearTimeout(_loadTimer);
-  _loadTimer=setTimeout(()=>{ t.style.display='none'; if(pill) pill.textContent='Enter zum Start'; state='play'; if(after) after(); }, 1500);
+  _loadTimer=setTimeout(()=>{ t.style.display='none'; if(pill) pill.textContent='Enter zum Start'; G.state='play'; if(after) after(); }, 1500);
 }
 function enterCHB(){
   showDistrictLoad(CHB_LOADSCREEN, ()=>{
-    scene='chb'; player.x=chbEntry.x; player.y=chbEntry.y; player.dir='up'; player.frame=0; enterCool=0.5;
+    G.scene='chb'; player.x=chbEntry.x; player.y=chbEntry.y; player.dir='up'; player.frame=0; enterCool=0.5;
     ccamx=clamp(player.x+8-LW/2,0,WPX-LW); ccamy=clamp(player.y+16-LH/2,0,HPX-LH);
     setBanner('Charlottenburg-Wilmersdorf','Bezirk'); showBanner();
   });
 }
 function exitCHB(){
-  scene='town'; sitting=null; player.x=chbReturn.x; player.y=chbReturn.y; player.dir=chbReturn.dir; player.frame=0;
+  G.scene='town'; sitting=null; player.x=chbReturn.x; player.y=chbReturn.y; player.dir=chbReturn.dir; player.frame=0;
   enterCool=0.5; setBanner('Zehlendorf Mitte','Bezirk'); showBanner();
 }
 
@@ -2289,7 +2288,7 @@ function applyEvolution(m, toId){ const nb=GIGODEX[toId];
   dexSeen.add(toId); dexCaught.add(toId); }
 let evolveState=null;
 function easeOutBack(x){ const c1=1.70158, c3=c1+1; return 1+c3*Math.pow(x-1,3)+c1*Math.pow(x-1,2); }
-function startEvolution(mon, toId){ evolveState={ mon, from:mon.id, to:toId, t:0, tt:0, phase:'popup', spk:null }; state='evolve'; }
+function startEvolution(mon, toId){ evolveState={ mon, from:mon.id, to:toId, t:0, tt:0, phase:'popup', spk:null }; G.state='evolve'; }
 function seedSparkles(e){ e.spk=[]; const cols=['#fff7c8','#ffe07a','#bfe8ff','#ffffff','#ffd24a'];
   for(let i=0;i<30;i++) e.spk.push({ ang:Math.random()*6.2832, spd:45+Math.random()*120, size:1+((Math.random()*2)|0), col:cols[i%cols.length], t0:Math.random()*0.12 }); }
 function advanceEvo(){ const e=evolveState; if(e&&e.phase==='popup'){ e.phase='charge'; e.t=0; } }
@@ -2301,7 +2300,7 @@ function updateEvolve(dt){ const e=evolveState; if(!e) return; e.t+=dt; e.tt+=dt
 }
 function evolveKey(k){ const e=evolveState; if(!e) return; if(!(k==='e'||k===' '||k==='enter')) return;
   if(e.phase==='popup'){ advanceEvo(); }
-  else if(e.phase==='wait'){ evolveState=null; state='play'; if(pendingCatch) openCatchChoice(); }
+  else if(e.phase==='wait'){ evolveState=null; G.state='play'; if(pendingCatch) openCatchChoice(); }
 }
 function drawEvoMon(id, cx, bottomY, scale, white, alpha){ const g=GIGODEX[id]; if(!g||!g.draw) return;
   X.save(); if(alpha!=null) X.globalAlpha=clamp(alpha,0,1); X.translate(cx|0,bottomY|0); X.scale(scale,scale);
@@ -2393,11 +2392,11 @@ function startBattle(enemyId, level, ret, type){
   const enemy=makeGigo(enemyId, level); dexSeen.add(enemyId);
   battle={ enemy, player:active, type:type||'wild', phase:'msg', menuIndex:0, moveIndex:0, partyIndex:0, forceSwitch:false, forcedFaint:false, pendingEvo:null,
     queue:[{text:'Ein wildes '+enemy.name+' taucht auf!'}], pending:null,
-    ret:ret||scene, over:false, win:null,
+    ret:ret||G.scene, over:false, win:null,
     hpE:enemy.hp, hpP:active.hp,
     flashE:0, flashP:0, shakeE:0, shakeP:0, lungeP:0, lungeE:0, hitFx:null,
     cap:null, t:0 };
-  scene='battle'; state='battle'; grassFlash=0;
+  G.scene='battle'; G.state='battle'; grassFlash=0;
   return true;
 }
 function buildMove(att, def, mvId, side){
@@ -2474,7 +2473,7 @@ function onCaught(E){ dexCaught.add(E.id); caughtGigos.push(E);
 function endBattle(){
   const ret=battle.ret, win=battle.win, p=battle.player, evo=battle.pendingEvo;
   if(win==='lose'){ p.hp=Math.max(1,Math.round(p.maxHP*0.25)); toast('Dein Team ist erschoepft. Heil dich bei Efes!',2800); }
-  scene=ret; state='play'; battle=null; encCool=1.5; lastTile=-1; clastTile=-1;
+  G.scene=ret; G.state='play'; battle=null; encCool=1.5; lastTile=-1; clastTile=-1;
   if(evo){ startEvolution(evo.mon, evo.to); return; }
   if(pendingCatch){ openCatchChoice(); }
 }
@@ -2801,8 +2800,8 @@ function bdWrap(txt,x,y,maxw,lh){ const words=(''+txt).split(' '); let line='',y
   for(const wd of words){ const tt=line?line+' '+wd:wd; if(X.measureText(tt).width>maxw){ X.fillText(line,x,yy); line=wd; yy+=lh; } else line=tt; }
   if(line){ X.fillText(line,x,yy); yy+=lh; } return yy; }
 function dexFoundList(id){ const out=[]; for(const p of DEX_PAGES){ if(p.gigos.includes(id)) out.push(p.name); } return out; }
-function openDexEntry(id){ dexEntryId=id; dexEntryShiny=false; state='dexEntry'; }
-function closeDexEntry(){ state='dex'; }
+function openDexEntry(id){ dexEntryId=id; dexEntryShiny=false; G.state='dexEntry'; }
+function closeDexEntry(){ G.state='dex'; }
 function dexEntryKey(k){ if(['b','i','q','escape','backspace'].includes(k)) closeDexEntry();
   else if(k==='s') dexEntryShiny=!dexEntryShiny; }
 function bdPortrait(x,y,w,h,id,mode){
@@ -2905,8 +2904,8 @@ function renderDex(){
   // Blumen-Deko
   bdFlower(22,18,'#e08aa8'); bdFlower(LW-22,18,'#9a7ac0'); bdFlower(20,152,'#e8c14a'); bdFlower(LW-20,152,'#e08aa8');
 }
-function openDex(){ dexPage=0; state='dex'; }
-function closeDex(){ state='play'; }
+function openDex(){ dexPage=0; G.state='dex'; }
+function closeDex(){ G.state='play'; }
 function dexKey(k){
   if(['arrowright','d'].includes(k)) dexPage=(dexPage+1)%DEX_PAGES.length;
   else if(['arrowleft','a'].includes(k)) dexPage=(dexPage+DEX_PAGES.length-1)%DEX_PAGES.length;
@@ -3186,12 +3185,12 @@ function renderEicheOben(){
     X.fillStyle='#ffe9a8'; X.font='bold 12px Georgia'; X.textAlign='center'; X.textBaseline='top'; X.fillText(reveal.caption, LW/2, 17); X.textAlign='left'; }
 }
 
-function enterEicheOben(){ scene='eicheOben'; player.x=150; player.y=140; player.dir='up'; player.frame=0;
+function enterEicheOben(){ G.scene='eicheOben'; player.x=150; player.y=140; player.dir='up'; player.frame=0;
   setBanner('Eiche · Obergeschoss','Sörens Geheimkammer'); showBanner(); enterCool=0.6; }
-function exitEicheOben(){ scene='eiche'; player.x=152; player.y=118; player.dir='up'; player.frame=0; enterCool=0.6; setBanner('Zehlendorf-Eiche','In der Eiche'); }
+function exitEicheOben(){ G.scene='eiche'; player.x=152; player.y=118; player.dir='up'; player.frame=0; enterCool=0.6; setBanner('Zehlendorf-Eiche','In der Eiche'); }
 
 // ---------- Cutscene: mit Sören nach hinten laufen -> Fade -> oben ----------
-function startEicheClimb(){ obenUnlocked=true; state='cutscene'; cutscene={phase:'walk',t:0}; fadeAlpha=0; }
+function startEicheClimb(){ obenUnlocked=true; G.state='cutscene'; cutscene={phase:'walk',t:0}; fadeAlpha=0; }
 function drawFade(){ if(fadeAlpha>0){ X.fillStyle='rgba(0,0,0,'+fadeAlpha+')'; X.fillRect(0,0,LW,LH); }
   if(cutscene && cutscene.phase==='walk'){ X.fillStyle='rgba(0,0,0,.5)'; X.fillRect(0,LH-20,LW,20); X.fillStyle='#e8dcc0'; X.font='9px Georgia'; X.textAlign='center'; X.textBaseline='top'; X.fillText('Du folgst Sören tiefer in die Eiche…', LW/2, LH-15); X.textAlign='left'; } }
 function stepCutscene(dt){ const c=cutscene; if(!c) return; c.t+=dt;
@@ -3200,16 +3199,16 @@ function stepCutscene(dt){ const c=cutscene; if(!c) return; c.t+=dt;
     soeren.y=Math.max(48, soeren.y-22*dt);
     if(player.y<=53 || c.t>1.7){ c.phase='fadeOut'; c.t=0; player.frame=0; } }
   else if(c.phase==='fadeOut'){ fadeAlpha=clamp(c.t/0.55,0,1); if(c.t>=0.55){ c.phase='switch'; } }
-  else if(c.phase==='switch'){ scene='eicheOben'; player.x=150;player.y=140;player.dir='up';player.frame=0; soeren.x=148;soeren.y=80;
+  else if(c.phase==='switch'){ G.scene='eicheOben'; player.x=150;player.y=140;player.dir='up';player.frame=0; soeren.x=148;soeren.y=80;
     setBanner('Eiche · Obergeschoss','Sörens Geheimkammer'); showBanner(); fadeAlpha=1; c.phase='fadeIn'; c.t=0; }
-  else if(c.phase==='fadeIn'){ fadeAlpha=clamp(1-c.t/0.55,0,1); if(c.t>=0.55){ fadeAlpha=0; cutscene=null; state='play'; startObenIntro(); } }
+  else if(c.phase==='fadeIn'){ fadeAlpha=clamp(1-c.t/0.55,0,1); if(c.t>=0.55){ fadeAlpha=0; cutscene=null; G.state='play'; startObenIntro(); } }
 }
 function startObenIntro(){ openDialog('Sören',[
   {w:'Sören',t:'*deutet auf drei Glaskuppeln* Schau genau hin, mein Sohn. Das hier sind meine kostbarsten Funde.'},
 ], ()=>startReveal()); }
 
 // ---------- Reveal: Sören wirft die Kapseln, jeder Akh erscheint ----------
-function startReveal(){ state='reveal'; starterMons=[]; reveal={ t:0, i:0, sub:'throw', capX:0,capY:0,capOpen:0,capRot:0, appear:0, caption:GIGODEX[STARTERS[0].id].name+'!' }; }
+function startReveal(){ G.state='reveal'; starterMons=[]; reveal={ t:0, i:0, sub:'throw', capX:0,capY:0,capOpen:0,capRot:0, appear:0, caption:GIGODEX[STARTERS[0].id].name+'!' }; }
 function stepReveal(dt){ const R=reveal; if(!R) return; R.t+=dt; const i=R.i; const s=STARTERS[i];
   const from={x:soerenOben.x+7,y:soerenOben.y+8}, to={x:SREV_X[i],y:SREV_Y};
   if(R.sub==='throw'){ const d=0.42,k=clamp(R.t/d,0,1); R.capX=from.x+(to.x-from.x)*k; R.capY=from.y+(to.y-from.y)*k - Math.sin(k*Math.PI)*30; R.capRot=R.t*14; R.caption=GIGODEX[s.id].name+'!';
@@ -3218,7 +3217,7 @@ function stepReveal(dt){ const R=reveal; if(!R) return; R.t+=dt; const i=R.i; co
   else if(R.sub==='hold'){ if(R.t>=0.5){ R.i++; if(R.i<3){ R.sub='throw'; R.t=0; } else { R.sub='done'; R.t=0; R.caption=''; } } }
   else if(R.sub==='done'){ if(R.t>=0.45){ reveal=null; revealReaction(); } }
 }
-function revealReaction(){ state='play'; openDialog('Sören',[
+function revealReaction(){ G.state='play'; openDialog('Sören',[
   {w:'Don',t:'What the Helly!? Setzen Sie diese Tiere unter Drogen? Der hat ja Teller wie manche Raver sie um 6 Uhr früh im Berghain nicht haben!'},
   {w:'Don',t:'Und der kleine Affe ist ja völlig angezündet, der geht ja nur loco. Und von der Kröte will ich gar nicht erst anfangen.'},
   {w:'Sören',t:'HEHEHEHAAA. Nein, Don. Ich habe diese Akhs allesamt so gefunden — und aufbewahrt bis zu diesem einen großen Tag.'},
@@ -3233,12 +3232,12 @@ const STARTERS=[
   { id:'koks',    tag:'Gift-Typ',  blurb:'Wired bis in die Zehenspitzen.' },
 ];
 let starterChosen=null, starterIndex=0, starterPick=0, confirmIdx=0;
-function openStarterSelect(){ state='starter'; starterIndex=0; }
+function openStarterSelect(){ G.state='starter'; starterIndex=0; }
 function grantStarter(id){
   for(let i=party.length-1;i>=0;i--) if(party[i].id==='leo') party.splice(i,1);   // Leo zurück
   party.push(makeGigo(id,5)); hasLeo=false; starterChosen=id; starterMons=null; reveal=null;
   dexSeen.add(id); dexCaught.add(id);
-  const nm=GIGODEX[id].name; state='play';
+  const nm=GIGODEX[id].name; G.state='play';
   toast('🧪 '+nm+' schließt sich deinem Team an!',2800);
   openDialog('Sören',[
     {w:'Sören',t:'Eine ausgezeichnete Wahl, mein Sohn. '+nm+' wird dir treu zur Seite stehen.'},
@@ -3274,14 +3273,14 @@ function renderStarterConfirm(){
   X.textAlign='left';
 }
 function starterKey(k){
-  if(state==='starter'){
+  if(G.state==='starter'){
     if(['arrowright','d','arrowdown','s'].includes(k)) starterIndex=(starterIndex+1)%3;
     else if(['arrowleft','a','arrowup','w'].includes(k)) starterIndex=(starterIndex+2)%3;
-    else if(k==='e'||k===' '||k==='enter'){ starterPick=starterIndex; confirmIdx=0; state='starterConfirm'; }
-  } else if(state==='starterConfirm'){
+    else if(k==='e'||k===' '||k==='enter'){ starterPick=starterIndex; confirmIdx=0; G.state='starterConfirm'; }
+  } else if(G.state==='starterConfirm'){
     if(['arrowleft','a','arrowright','d'].includes(k)) confirmIdx=confirmIdx?0:1;
-    else if(k==='e'||k===' '||k==='enter'){ if(confirmIdx===0) grantStarter(STARTERS[starterPick].id); else state='starter'; }
-    else if(k==='q'||k==='escape'||k==='backspace') state='starter';
+    else if(k==='e'||k===' '||k==='enter'){ if(confirmIdx===0) grantStarter(STARTERS[starterPick].id); else G.state='starter'; }
+    else if(k==='q'||k==='escape'||k==='backspace') G.state='starter';
   }
 }
 function talkSoerenOben(){ if(!starterChosen) startStarterReveal(); else soerenTeaser(); }
@@ -3300,12 +3299,12 @@ const storage=[];            // Akh-Lager
 let pendingCatch=null;        // gefangener Akh bei vollem Team
 let catchChoiceIdx=0;
 
-function openTeam(){ state='team'; }
-function closeTeam(){ state='play'; }
+function openTeam(){ G.state='team'; }
+function closeTeam(){ G.state='play'; }
 function teamKey(k){ if(['t','i','q','escape','backspace','b'].includes(k)) closeTeam(); }
 
-function openCatchChoice(){ state='catchChoice'; catchChoiceIdx=0; }
-function catchChoose(keep){ const E=pendingCatch; pendingCatch=null; state='play';
+function openCatchChoice(){ G.state='catchChoice'; catchChoiceIdx=0; }
+function catchChoose(keep){ const E=pendingCatch; pendingCatch=null; G.state='play';
   if(keep){ storage.push(E); toast(E.name+' wurde ins Akh-Lager geschickt.',2600); }
   else { toast(E.name+' wurde freigelassen. Alles Gute, kleiner Akh!',2600); }
 }
@@ -3510,12 +3509,12 @@ function drawLightKL(){
   X.drawImage(lightCv,0,0);
 }
 function enterKL(){
-  scene='kl'; sitting=null; klJump=null; player.x=klEntry.x; player.y=klEntry.y; player.dir='left'; player.frame=0; enterCool=0.5;
+  G.scene='kl'; sitting=null; klJump=null; player.x=klEntry.x; player.y=klEntry.y; player.dir='left'; player.frame=0; enterCool=0.5;
   klcamx=clamp(player.x+8-LW/2,0,WPX-LW); klcamy=clamp(player.y+16-LH/2,0,HPX-LH);
   setBanner('Krumme Lanke','Zehlendorf, Berlin'); showBanner(); toast('Neue Karte: Krumme Lanke',2600);
 }
 function exitKL(){
-  scene='town'; sitting=null; player.x=klReturn.x; player.y=klReturn.y; player.dir=klReturn.dir; player.frame=0; enterCool=0.5;
+  G.scene='town'; sitting=null; player.x=klReturn.x; player.y=klReturn.y; player.dir=klReturn.dir; player.frame=0; enterCool=0.5;
   setBanner('Zehlendorf Mitte','Bezirk'); showBanner();
 }
 
@@ -3784,12 +3783,12 @@ function drawLightMitte(){
   X.drawImage(lightCv,0,0);
 }
 function enterMitte(){
-  scene='mitte'; sitting=null; player.x=mitEntry.x; player.y=mitEntry.y; player.dir='right'; player.frame=0; enterCool=0.5;
+  G.scene='mitte'; sitting=null; player.x=mitEntry.x; player.y=mitEntry.y; player.dir='right'; player.frame=0; enterCool=0.5;
   mitcamx=clamp(player.x+8-LW/2,0,MITPX-LW); mitcamy=clamp(player.y+16-LH/2,0,MITHPX-LH);
   setBanner('Mitte','High-Level-Bezirk'); showBanner(); toast('Neue Karte: Mitte \u2014 Akhs Lvl 15\u201330. Pass auf dein Team auf.',3000);
 }
 function exitMitte(){
-  scene='chb'; sitting=null; player.x=mitReturn.x; player.y=mitReturn.y; player.dir=mitReturn.dir; player.frame=0; enterCool=0.5;
+  G.scene='chb'; sitting=null; player.x=mitReturn.x; player.y=mitReturn.y; player.dir=mitReturn.dir; player.frame=0; enterCool=0.5;
   ccamx=clamp(player.x+8-LW/2,0,WPX-LW); ccamy=clamp(player.y+16-LH/2,0,HPX-LH);
   setBanner('Charlottenburg-Wilmersdorf','Bezirk'); showBanner();
 }
@@ -4092,10 +4091,10 @@ function drawLightClub(){
   Lx.globalCompositeOperation='source-over'; X.drawImage(lightCv,0,0);
 }
 function enterClub(){ showDistrictLoad(CLUB_LOADSCREEN, ()=>{
-  scene='club'; sitting=null; player.x=clubEntry.x; player.y=clubEntry.y; player.dir='right'; player.frame=0; enterCool=0.5;
+  G.scene='club'; sitting=null; player.x=clubEntry.x; player.y=clubEntry.y; player.dir='right'; player.frame=0; enterCool=0.5;
   clubcamx=clamp(player.x+8-LW/2,0,CLUBPX-LW); clubcamy=clamp(player.y+16-LH/2,0,CLUBHPX-LH);
   setBanner('Heidegl\u00fchen','Club \u00b7 Open Air'); showBanner(); toast('Drinnen: Holz, Bass, Seifenblasen. Ganz hinten oben wartet der Owner.',3200); }); }
-function exitClub(){ scene='mitte'; sitting=null; player.x=clubReturn.x; player.y=clubReturn.y; player.dir=clubReturn.dir; player.frame=0; enterCool=0.5;
+function exitClub(){ G.scene='mitte'; sitting=null; player.x=clubReturn.x; player.y=clubReturn.y; player.dir=clubReturn.dir; player.frame=0; enterCool=0.5;
   mitcamx=clamp(player.x+8-LW/2,0,MITPX-LW); mitcamy=clamp(player.y+16-LH/2,0,MITHPX-LH);
   setBanner('Mitte','High-Level-Bezirk'); showBanner(); }
 
@@ -4113,7 +4112,7 @@ document.getElementById('loadImg').src=LOADSCREEN;
 
 let last=performance.now();
 function loop(now){ let dt=(now-last)/1000; last=now; if(dt>0.05)dt=0.05;
-  update(dt); if(state!=='title') render();
+  update(dt); if(G.state!=='title') render();
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
