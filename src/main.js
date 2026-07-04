@@ -3,68 +3,11 @@
    GIGOS · Zehlendorf Mitte  — 2D top-down, eigene Pixel-Art
    Alles prozedural gezeichnet. Keine Fremd-Assets. Licht von oben-links.
    ====================================================================== */
-const LW=320, LH=180, TILE=16;
-const MAPW=34, MAPH=26;                 // Karte in Tiles
-const WPX=MAPW*TILE, HPX=MAPH*TILE;     // 544 x 416
-const cv=document.getElementById('game'), X=cv.getContext('2d');
-X.imageSmoothingEnabled=false;
-const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+import { LW, LH, TILE, MAPW, MAPH, WPX, HPX, cv, X, reduce, C } from './core/constants.js';
+import { hash, clamp, lerp, pick } from './core/math.js';
+import { LEAF_LINDEN, LEAF_OAK, canopy, px, dot, shadow, fit } from './core/canvas.js';
 
-/* ---- skalieren auf Fenster (integer, pixelig) ---- */
 const LOADSCREEN="assets/images/loadscreen.jpg";
-function fit(){
-  const s=Math.max(1,Math.floor(Math.min(innerWidth/LW,innerHeight/LH)));
-  cv.style.width=(LW*s)+'px'; cv.style.height=(LH*s)+'px';
-}
-addEventListener('resize',fit); fit();
-
-/* ---- kleine Helfer ---- */
-/* ---- dichte, runde Baumkrone (per-Pixel, Licht oben-links) ---- */
-const LEAF_LINDEN={edge:'#2c4a22',lo:'#3c6029',mid:'#4f7d39',hi:'#74a64e',gap:'#b9975e'};
-const LEAF_OAK   ={edge:'#28401e',lo:'#365626',mid:'#487034',hi:'#6e9a44',gap:'#b9975e'};
-function canopy(c,cx,cy,rx,ry,P,seed){ seed=seed||0;
-  for(let y=-ry;y<=ry;y++)for(let x=-rx;x<=rx;x++){ const nx=x/rx, ny=y/ry, d=nx*nx+ny*ny; if(d>1)continue;
-    const light=(-nx-ny); let col=P.mid;
-    if(d>0.80) col=P.edge; else if(light>0.55) col=P.hi; else if(light<-0.45) col=P.lo;
-    const r=hash(cx+x+seed,cy+y-seed);
-    if(r<0.12) col=(light>0?P.hi:P.lo);
-    if(d<0.74 && r>0.987) col=P.gap;
-    c.fillStyle=col; c.fillRect((cx+x)|0,(cy+y)|0,1,1);
-  }
-}
-function px(c,x,y,w,h,col){ c.fillStyle=col; c.fillRect(x|0,y|0,w|0,h|0); }
-function dot(c,x,y,col){ c.fillStyle=col; c.fillRect(x|0,y|0,1,1); }
-function hash(x,y){ let h=(x*374761393+y*668265263)^0x5bd1e995; h=(h^(h>>>13))*1274126177; return ((h^(h>>>16))>>>0)/4294967296; }
-function clamp(v,a,b){ return v<a?a:v>b?b:v; }
-function lerp(a,b,t){ return a+(b-a)*t; }
-
-/* ======================================================================
-   PALETTE — kuratiert, kohärent, Berlin-Dämmerung
-   ====================================================================== */
-const C={
-  grass:['#5e8a44','#557e3d','#699751','#4c7338'], grassBase:'#557e3d',
-  grassHi:'#79a857', grassLo:'#3f6531',
-  cobble:['#9a958c','#8f8a80','#a6a199','#857f76'], cobbleGrout:'#6f6a61',
-  walk:['#cdbb98','#c4b08c','#d6c5a3'], walkLo:'#a8966f',
-  road:'#4f4d52', roadHi:'#5a585d', roadLine:'#cdbf86',
-  plaza:['#c2b48f','#b8a981','#cdc099'],
-  dirt:['#9c7d52','#90724a'],
-  water:'#3f6f86', waterHi:'#5b8aa0', waterLo:'#315a70', waterEdge:'#6b5a3c',
-  tgrass:'#3f6a30', tgrassHi:'#5f8c3c', tgrassLo:'#2c4d22',
-  sand:'#d8c39a', sandSh:'#b89a6e',
-  brick:'#9c5444', brickSh:'#7e3f33', brickHi:'#b06a56',
-  slate:'#54505e', slateHi:'#6a6576', slateLo:'#3d3a47',
-  roofRed:'#9a4a36', roofRedHi:'#b15c44', roofRedLo:'#7a3727',
-  wood:'#7a5436', woodHi:'#946a45', woodLo:'#5c3e27',
-  win:'#36506a', winGlow:'#ffd98a', winGlowSoft:'#ffe9bf',
-  trunk:'#6b4a30', trunkHi:'#825c3c', trunkLo:'#4e3522',
-  leaf:['#4f7d39','#447031','#5b8d40','#3c6029'], leafHi:'#74a64e', leafGap:'#caa86e',
-  ink:'#241c14', white:'#f4ecd6',
-  enamel:'#0a4ea0', sbahnGreen:'#1f7a3a', sbahnYellow:'#f4c318',
-  lamp:'#3a3640', lampGlow:'#ffdca0',
-  skinA:'#e8c39a', skinB:'#c89070',
-};
-const pick=(arr,x,y)=>arr[(hash(x,y)*arr.length)|0];
 
 /* ======================================================================
    GROUND-/COLLISION-AUFBAU  (regionsbasiert -> wenig Fehlerquelle)
@@ -181,7 +124,6 @@ function paintGround(){
    OBJEKTE  (zeichnen direkt auf BELOW + ABOVE, registrieren solid/inter)
    ====================================================================== */
 // weicher Schatten (auf BELOW, leicht transparent)
-function shadow(c,x,y,w,h){ c.fillStyle='rgba(20,18,30,.20)'; c.beginPath(); c.ellipse(x+w/2,y+h,w/2,h/2,0,0,7); c.fill(); }
 
 /* ---------- Straßenlaterne (Berliner Bogenlampe) ---------- */
 const glows=[]; // {x,y,r,col,kind}
