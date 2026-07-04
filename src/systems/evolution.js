@@ -4,8 +4,9 @@ import { clamp } from '../core/math.js';
 import { G } from '../core/state.js';
 import { GIGODEX } from '../data/gigodex.js';
 import { GIGO_TINT } from '../entities/creatures.js';
-import { dexSeen, dexCaught, relevelStats, wrapCenter } from '../main.js';
+import { dexSeen, dexCaught, relevelStats } from '../main.js';
 import { pendingCatch, openCatchChoice } from './party.js';
+import { wrapCenter } from '../world/eiche.js';
 
 // --- evolutionSystem (data-driven: GIGODEX[id].evo = {type,requirement,evolvesTo}) ---
 export function readyEvolution(m){ const cfg=GIGODEX[m.id]&&GIGODEX[m.id].evo; if(!cfg) return null;
