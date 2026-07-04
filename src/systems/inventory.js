@@ -1,5 +1,6 @@
 import { toast } from '../ui/toast.js';
-import { drawKeta, PUNISHER_IMG, drawBluePunisher, ketaKapseln } from '../main.js';
+import { PUNISHER_IMG, drawBluePunisher, ketaKapseln } from '../main.js';
+import { drawKeta } from './battle.js';
 
 export let invOpen=false;
 export const inventory=[];
