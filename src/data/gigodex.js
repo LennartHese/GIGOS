@@ -1,0 +1,48 @@
+import {
+  drawRacoonBattle, drawLeoBack, drawMephe, drawEcstasy, drawKoks,
+  drawKraehe1, drawKraehe2, drawKraehe3,
+  drawSquirrel1, drawSquirrel2, drawSquirrel3,
+  drawKrabbe1, drawKrabbe2,
+} from '../entities/creatures.js';
+
+// Felder: name,type,hp,atk,def,spd,catch,moves,draw|drawBack,dex
+export const GIGODEX = {
+  // --- gezeichnet ---
+  racoon:{ name:'Geeked up Racoon', rarity:'common', type:'Chaos', hp:20, atk:9, def:7, spd:9, catch:210,
+    moves:['kratzer','rauchbombe','augenrollen'], draw:drawRacoonBattle,
+    dex:'Sitzt im hohen Gras, baut sich einen und vergisst wovor er gerade weglief.' },
+  leo:{ name:'Leo', type:'Streuner', hp:26, atk:11, def:9, spd:12, catch:60,
+    moves:['kratzer','satz','fauchen'], drawBack:drawLeoBack, draw:null,
+    dex:'Soerens geliehener Kater. Macht was er will, kaempft trotzdem fuer dich.' },
+  // --- Stubs (kommen Stueck fuer Stueck) ---
+  mephe:{ name:'Mephe Monkey', type:'Chaos', hp:24, atk:12, def:8, spd:13, catch:45, moves:['kratzer','satz'], draw:drawMephe, dex:'???' },
+  ecstasy:{ name:'Ecstasy Eule', type:'Rave', hp:22, atk:11, def:9, spd:12, catch:45, moves:['kratzer','augenrollen'], draw:drawEcstasy, dex:'???' },
+  koks:{ name:'Koks Kroete', type:'Gift', hp:23, atk:13, def:10, spd:9, catch:45, moves:['kratzer','biss'], draw:drawKoks, dex:'???' },
+  bomboclat:{ name:'Bomboclat Barsch', type:'Wasser', hp:21, atk:10, def:9, spd:8, catch:140, moves:['kratzer'], draw:null, dex:'???' },
+  botox:{ name:'Botox Barsch', type:'Wasser', hp:20, atk:9, def:12, spd:7, catch:140, moves:['kratzer'], draw:null, dex:'???' },
+  kraehe:{ name:'Crazy Krähe', rarity:'common', evo:{type:'level',requirement:12,evolvesTo:'kraehe2'}, stage:'Bambini', type:'Luft', hp:19, atk:12, def:7, spd:14, catch:150, moves:['kratzer','satz'], draw:drawKraehe1,
+    dex:'Frisch geschlüpft und schon komplett verpeilt. Trägt eine Goldkette mit „R“, angeblich vom großen Bruder vererbt. Klaut alles was glänzt und verkauft es am Kotti weiter.' },
+  kraehe2:{ name:'Vibey Krähe', rarity:'uncommon', evo:{type:'level',requirement:24,evolvesTo:'kraehe3'}, stage:'Youngin', type:'Luft', hp:26, atk:15, def:10, spd:17, catch:80, moves:['kratzer','satz','fauchen'], draw:drawKraehe2,
+    dex:'Die Teenie-Phase. Sonnenbrille auf, Matcha in der Kralle, viel zu chillig für diese Welt. Tut so als hätte es einen Plan, hat aber nur Vibes.' },
+  kraehe3:{ name:'Drip Drop Krähe', rarity:'rare', stage:'G', dispScale:1.3, dispDy:3, type:'Luft', hp:34, atk:19, def:14, spd:20, catch:35, moves:['satz','biss','rauchbombe'], draw:drawKraehe3,
+    dex:'Endform. Volles Berghain-Drip, Mantel wie aus dem KaDeWe-Albtraum, Kette mit Kreuz. Kommt nur nachts raus und stand noch nie in einer Schlange — es ist einfach drin.' },
+  squirrel:{ name:'Geeky Squirrel', rarity:'common', evo:{type:'level',requirement:12,evolvesTo:'squirrel2'}, stage:'Bambini', type:'Chaos', hp:21, atk:11, def:9, spd:11, catch:150, moves:['kratzer','satz'], draw:drawSquirrel1,
+    dex:'Erste Flasche Lila-Zeug vom Späti geklaut, hält sie fest wie einen Schatz. Noch süß, noch harmlos, grinst dich an und weiß selbst nicht warum.' },
+  squirrel2:{ name:'Loaded Squirreloo', rarity:'uncommon', evo:{type:'level',requirement:24,evolvesTo:'squirrel3'}, stage:'Youngin', type:'Chaos', hp:29, atk:15, def:12, spd:13, catch:80, moves:['kratzer','satz','biss'], draw:drawSquirrel2,
+    dex:'Teenie-Phase mit Fass auf dem Rücken. Augen halb zu, Zunge raus, tropft lila auf den Gehweg. Tut so als hätte es alles im Griff, liegt aber nur rum.' },
+  squirrel3:{ name:'Squanshy', rarity:'rare', stage:'G', dispScale:1.15, dispDy:2, type:'Chaos', hp:38, atk:19, def:16, spd:15, catch:35, moves:['satz','biss','rauchbombe'], draw:drawSquirrel3,
+    dex:'Endform. Drei Fässer angeschnallt, Maul voll Schaum, Augen in verschiedene Richtungen. Rennt nachts durch den Grunewald und brüllt Sachen die keiner versteht.' },
+  krabbe:{ name:'Krumme Krabbe', rarity:'common', evo:{type:'level',requirement:16,evolvesTo:'krabbe2'}, stage:'Bambini', type:'Wasser', hp:22, atk:12, def:11, spd:9, catch:140, moves:['kratzer','satz'], draw:drawKrabbe1,
+    dex:'Watschelt seitwaerts durch den Uferschlick der Krummen Lanke, in der Schere eine pinke Spruehdose. Zischt gern, meint es aber nicht boese.' },
+  krabbe2:{ name:'Hooligrabbe', rarity:'rare', dispScale:1.2, dispDy:2, stage:'G', type:'Streuner', hp:40, atk:22, def:19, spd:12, catch:30, moves:['biss','satz','rauchbombe'], draw:drawKrabbe2,
+    dex:'Endform. Hertha-Cap tief im Gesicht, Muschelpanzer voller Stacheln, Pilsflasche in der Schere. Steht am Ufer in der Ostkurve und singt Sachen die man besser nicht mitschreibt.' },
+  fox:{ name:'Fucked Fox', type:'Chaos', hp:22, atk:13, def:8, spd:12, catch:120, moves:['kratzer','biss'], draw:null, dex:'???' },
+  goon:{ name:'Grunewald-Goon-Dragon', type:'Drache', hp:34, atk:16, def:14, spd:10, catch:25, moves:['biss','satz'], draw:null, dex:'???' },
+  hedgehog:{ name:'Hero Hedgehog', type:'Stahl', hp:24, atk:10, def:15, spd:8, catch:130, moves:['kratzer','satz'], draw:null, dex:'???' },
+  karpfen:{ name:'Kanal-Karpfen', type:'Wasser', hp:26, atk:8, def:11, spd:6, catch:170, moves:['satz'], draw:null, dex:'???' },
+  kobold:{ name:'Keta-Kobold', type:'Chaos', hp:20, atk:12, def:8, spd:11, catch:90, moves:['augenrollen','biss'], draw:null, dex:'???' },
+  koka:{ name:'Koka Eule', type:'Rave', hp:21, atk:14, def:8, spd:13, catch:80, moves:['kratzer','augenrollen'], draw:null, dex:'???' },
+  libelle:{ name:'Lesbische Libelle', type:'Luft', hp:18, atk:11, def:9, spd:16, catch:150, moves:['kratzer','satz'], draw:null, dex:'???' },
+  rabbit:{ name:'Rabies Rabbit', type:'Gift', hp:20, atk:13, def:7, spd:14, catch:110, moves:['biss','kratzer'], draw:null, dex:'???' },
+  wildschwein:{ name:'Wokes Wildschwein', type:'Erde', hp:30, atk:14, def:13, spd:8, catch:60, moves:['satz','biss'], draw:null, dex:'???' },
+};
