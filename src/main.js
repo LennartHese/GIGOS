@@ -15,6 +15,9 @@ import { STARTERS } from './data/starters.js';
 import { keys } from './core/input.js';
 import { drawChar, drawSit, PAL_PLAYER, PAL_OMA, PAL_KID, PAL_HAZE, PAL_PASSI } from './entities/drawChar.js';
 import { player, movePlayer, facingTo, frontPoint } from './entities/player.js';
+import { setBanner, showBanner } from './ui/banner.js';
+import { toast } from './ui/toast.js';
+import { openDialog, advanceDialog, choiceState, closeChoice, openChoice, renderChoices, moveChoice, pickChoice } from './systems/dialogue.js';
 
 const LOADSCREEN="assets/images/loadscreen.jpg";
 
@@ -512,32 +515,9 @@ cv.addEventListener('touchstart',tapCanvas,{passive:false}); cv.addEventListener
    ====================================================================== */
 let sitting=null;      // {bx,by} wenn der Spieler auf einer Bank sitzt
 let hasLeo=false;      // Leo (Hazes Katze) als geliehener Begleiter nach Sörens Quest
-let dialogQ=[], dialogWho='';
-const banner=document.getElementById('banner');
-const dlg=document.getElementById('dialog'), dWho=document.getElementById('dWho'), dText=document.getElementById('dText');
-const toastEl=document.getElementById('toast'); let toastT=0;
 
-function setBanner(name,sub){ document.getElementById('bName').textContent=name; document.getElementById('bSub').textContent=sub||'Bezirk'; }
-function showBanner(){ banner.classList.add('show'); setTimeout(()=>banner.classList.remove('show'),2400); }
-function toast(msg,ms){ toastEl.textContent=msg; toastEl.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>toastEl.classList.remove('show'), ms||1800); }
-let dialogOnEnd=null;
-function openDialog(who,lines,onEnd){ G.state='dialog'; dialogWho=who;
-  dialogQ=lines.map(l=> (typeof l==='string')?{who:who,text:l}:{who:(l.who??l.w??who),text:(l.text??l.t)} );
-  dialogOnEnd=onEnd||null;
-  const f=dialogQ.shift(); dWho.textContent=f.who; dText.textContent=f.text; dlg.style.display='block'; }
-function advanceDialog(){ if(dialogQ.length){ const n=dialogQ.shift(); dWho.textContent=n.who; dText.textContent=n.text; }
-  else { dlg.style.display='none'; G.state='play'; const cb=dialogOnEnd; dialogOnEnd=null; if(cb) cb(); } }
-// --- Choice-Dialog ---
-let choiceState=null; const dChoicesEl=document.getElementById('dChoices');
-function openChoice(who,text,choices){ G.state='dialog'; dialogQ=[]; dialogOnEnd=null; dWho.textContent=who; dText.textContent=text; dlg.style.display='block'; choiceState={choices,idx:0}; renderChoices(); }
-function renderChoices(){ if(!dChoicesEl) return; if(!choiceState){ dChoicesEl.style.display='none'; dChoicesEl.innerHTML=''; return; } dChoicesEl.innerHTML=''; dChoicesEl.style.display='block';
-  choiceState.choices.forEach((c,i)=>{ const b=document.createElement('div'); b.className='dchoice'+(i===choiceState.idx?' sel':''); b.textContent=(i+1)+'. '+c.label;
-    const pick=(e)=>{ if(e){e.preventDefault&&e.preventDefault(); e.stopPropagation&&e.stopPropagation();} pickChoice(i); };
-    b.addEventListener('mousedown',pick); b.addEventListener('touchstart',pick,{passive:false}); dChoicesEl.appendChild(b); }); }
-function moveChoice(d){ if(!choiceState) return; const n=choiceState.choices.length; choiceState.idx=(choiceState.idx+d+n)%n; renderChoices(); }
-function pickChoice(i){ if(!choiceState) return; const c=choiceState.choices[i]; if(!c) return; choiceState=null; if(dChoicesEl){ dChoicesEl.style.display='none'; dChoicesEl.innerHTML=''; } c.fn(); }
 // --- Heidegluehen Tuersteherin-Gate ---
-function gateReject(msg){ choiceState=null; openDialog('Tuersteherin',[msg]); }
+function gateReject(msg){ closeChoice(); openDialog('Tuersteherin',[msg]); }
 function gateStart(){ if(clubUnlocked){ enterClub(); return; } openChoice('Tuersteherin','Hi, first time here?',[
   {label:'Yes, its my first time in the city. Its so Berlinnnn!', fn:()=>gateReject('Sorry, not today.')},
   {label:'No, I have been here multiple times, loved it.', fn:()=>gateReject('Sorry, not today.')},
