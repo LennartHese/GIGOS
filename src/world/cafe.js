@@ -13,7 +13,7 @@ import { T, lightCv, Lx, setEnterCool, clearSitting } from '../main.js';
    ALL ABOUT WEST — Café-Innenraum (begehbar)
    ====================================================================== */
 const cafeBG=document.createElement('canvas'); cafeBG.width=LW; cafeBG.height=LH;
-const cafeSolids=[], cafeNpcs=[], cafeInters=[];
+const cafeSolids=[]; export const cafeNpcs=[], cafeInters=[];
 export let cafeReturn={x:272,y:264,dir:'down'};
 export function setCafeReturn(p){ cafeReturn=p; }
 const CAB={x:14,y:66,x2:306,y2:178};   // begehbarer Boden

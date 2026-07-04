@@ -24,7 +24,7 @@ import { storage, pendingCatch, setPendingCatch, openTeam, closeTeam, teamKey, o
 import { readyEvolution, applyEvolution, startEvolution, updateEvolve, evolveKey, renderEvolve } from './systems/evolution.js';
 import { makeGigo, kapselAt, drawKeta, caughtRacoon, startBattle, battleKey, renderBattle, updateBattle } from './systems/battle.js';
 import { blockedEfes, setEfesReturn, buildEfes, enterEfes, exitEfes, talkDoener, renderEfes, tickHealFx } from './world/efes.js';
-import { setCafeReturn, buildCafe, talkBarista, enterCafe, exitCafe, blockedCafe, renderCafe } from './world/cafe.js';
+import { setCafeReturn, buildCafe, talkBarista, enterCafe, exitCafe, blockedCafe, renderCafe, cafeNpcs, cafeInters } from './world/cafe.js';
 
 const LOADSCREEN="assets/images/loadscreen.jpg";
 
