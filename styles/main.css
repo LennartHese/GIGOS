@@ -1,0 +1,92 @@
+  :root{
+    --enamel:#0a4ea0;      /* Berliner Straßenschild-Blau */
+    --enamel-dark:#073a78;
+    --parch:#efe3c4;       /* warmes Pergament/Emaille-Weiß */
+    --ink:#2a2118;
+    --dusk:#f2dcae;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:#05060a;overflow:hidden;
+    font-family:Georgia,'Iowan Old Style','Times New Roman',serif;
+    -webkit-user-select:none;user-select:none;touch-action:none;overscroll-behavior:none;}
+  #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#05060a;}
+  canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block;}
+  #game{box-shadow:0 0 0 2px #000,0 18px 60px rgba(0,0,0,.7);}
+
+  /* ---- District-Banner: blaues Emaille-Straßenschild ---- */
+  #banner{position:fixed;left:50%;top:34px;transform:transl(-50%,-160%);
+    background:var(--enamel);color:#fff;border:3px solid #fff;border-radius:4px;
+    box-shadow:inset 0 0 0 3px var(--enamel),0 6px 22px rgba(0,0,0,.55);
+    padding:9px 30px 11px;letter-spacing:.06em;text-align:center;z-index:40;
+    transition:transform .55s cubic-bezier(.2,.9,.25,1.2),opacity .4s;opacity:0;pointer-events:none;}
+  #banner .b-sub{font-size:11px;letter-spacing:.22em;opacity:.82;text-transform:uppercase;margin-bottom:2px;font-family:'Courier New',monospace;}
+  #banner .b-name{font-size:25px;font-weight:bold;font-variant:small-caps;text-shadow:1px 1px 0 var(--enamel-dark);}
+  #banner.show{transform:translate(-50%,0);opacity:1;}
+
+  /* ---- Dialog ---- */
+  #dialog{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);width:min(560px,92vw);
+    background:linear-gradient(180deg,#f6ecd2,#e7d6ad);color:var(--ink);
+    border:2px solid #2a2118;border-radius:7px;
+    box-shadow:inset 0 0 0 2px #c9b483,0 8px 28px rgba(0,0,0,.6);
+    padding:15px 18px 16px;z-index:45;display:none;line-height:1.45;font-size:16px;}
+  #dialog .who{font-family:'Courier New',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:#8a5a2a;margin-bottom:5px;}
+  #dialog .more{position:absolute;right:14px;bottom:9px;color:#8a5a2a;font-size:13px;animation:bob 1s infinite;}
+  #dChoices{margin-top:9px;display:none;}
+  #dChoices .dchoice{padding:7px 11px;margin:4px 0;border:1.5px solid #b09562;border-radius:5px;background:#efe0bd;color:#2a2118;cursor:pointer;font-size:14px;line-height:1.3;}
+  #dChoices .dchoice.sel{background:#e6cd8e;border-color:#8a5a2a;box-shadow:inset 0 0 0 1px #8a5a2a;}
+  #dChoices .dchoice:active{background:#dcc384;}
+  @keyframes bob{50%{transform:translateY(3px)}}
+
+  /* ---- Toast (Encounter etc.) ---- */
+  #toast{position:fixed;left:50%;top:18%;transform:translateX(-50%) scale(.9);z-index:46;
+    background:rgba(12,10,18,.86);color:#ffe6a8;border:1px solid #ffce73;border-radius:6px;
+    padding:9px 18px;font-size:15px;letter-spacing:.02em;opacity:0;transition:opacity .25s,transform .25s;
+    backdrop-filter:blur(3px);text-align:center;pointer-events:none;}
+  #toast.show{opacity:1;transform:translateX(-50%) scale(1);}
+
+  /* ---- Ladescreen (KI-Bild von Zehlendorf) ---- */
+  #title{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:#05060a;}
+  #loadImg{image-rendering:pixelated;max-width:96vw;max-height:82vh;object-fit:contain;
+    box-shadow:0 0 0 2px #000,0 20px 60px rgba(0,0,0,.7);}
+  #titleText{position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+    padding-bottom:8%;pointer-events:none;}
+  #startpill{font-family:'Courier New',monospace;font-size:13px;letter-spacing:.18em;color:#0a4ea0;
+    background:#fff;border:2px solid #fff;box-shadow:0 0 0 2px #0a4ea0;border-radius:30px;padding:9px 22px;
+    text-transform:uppercase;animation:pulse 1.8s infinite;}
+  @keyframes pulse{50%{opacity:.55}}
+
+  /* ---- Touch-Steuerung (nur Touch) ---- */
+  #touch{position:fixed;inset:0;z-index:30;display:none;pointer-events:none;}
+  .pad{position:absolute;pointer-events:auto;width:62px;height:62px;border-radius:12px;
+    background:rgba(20,16,10,.34);border:1.5px solid rgba(255,255,255,.22);backdrop-filter:blur(2px);
+    color:#f2dcae;font-size:22px;display:flex;align-items:center;justify-content:center;}
+  #pUp{left:74px;bottom:150px}#pDown{left:74px;bottom:24px}#pLeft{left:8px;bottom:87px}#pRight{left:140px;bottom:87px}
+  #pInv{right:22px;bottom:135px;width:52px;height:52px;border-radius:12px;background:rgba(10,78,160,.42);font-size:24px;}
+  #pDex{right:22px;bottom:198px;width:52px;height:52px;border-radius:12px;background:rgba(150,110,40,.5);font-size:24px;}
+  #pTeam{right:22px;bottom:261px;width:52px;height:52px;border-radius:12px;background:rgba(40,120,90,.5);font-size:24px;}
+  @media (pointer:coarse){ #dexIcon{display:none;} }
+  #pA{right:22px;bottom:50px;width:72px;height:72px;border-radius:50%;background:rgba(10,78,160,.5);font-family:'Courier New',monospace;font-size:18px;}
+  @media (pointer:coarse){#touch{display:block}}
+
+  /* ---- Inventar-Panel (Emaille/Pergament-Look) ---- */
+  #inv{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:55;display:none;
+    width:min(360px,86vw);background:linear-gradient(180deg,#f6ecd2,#e7d6ad);color:var(--ink);
+    border:2px solid #2a2118;border-radius:9px;box-shadow:inset 0 0 0 2px #c9b483,0 14px 40px rgba(0,0,0,.65);
+    padding:14px 16px 12px;}
+  #inv .inv-head{font-family:'Courier New',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+    color:#8a5a2a;border-bottom:1px solid #c9b483;padding-bottom:8px;margin-bottom:10px;}
+  #invClose{float:right;cursor:pointer;color:#8a5a2a;font-size:16px;line-height:1;margin:-2px -4px 0 0;padding:2px 8px;
+    border:1px solid #c9b483;border-radius:6px;background:rgba(255,255,255,.25);}
+  #invBack{position:fixed;inset:0;z-index:54;display:none;background:rgba(0,0,0,.35);}
+  #invGrid{display:flex;flex-wrap:wrap;gap:10px;min-height:64px;}
+  .inv-slot{width:96px;display:flex;flex-direction:column;align-items:center;gap:4px;
+    background:rgba(255,255,255,.18);border:1px solid #c9b483;border-radius:6px;padding:8px 4px;}
+  .inv-cv{width:48px;height:100px;image-rendering:pixelated;image-rendering:crisp-edges;}
+  .inv-name{font-size:11px;line-height:1.2;text-align:center;color:#3a2a1a;}
+  .inv-empty{font-size:13px;color:#8a7a5a;font-style:italic;padding:18px 4px;}
+  #inv .inv-foot{font-family:'Courier New',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:#8a5a2a;text-align:right;margin-top:10px;border-top:1px solid #c9b483;padding-top:8px;}
+  .hint{position:fixed;left:0;right:0;bottom:6px;text-align:center;color:#6a6258;font-size:11px;
+    font-family:'Courier New',monospace;letter-spacing:.1em;z-index:20;pointer-events:none;}
