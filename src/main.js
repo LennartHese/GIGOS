@@ -10,6 +10,8 @@ import { G } from './core/state.js';
 import { MOVES } from './data/moves.js';
 import { GIGODEX } from './data/gigodex.js';
 import { drawGigoStub, GIGO_IMG, GIGO_TINT } from './entities/creatures.js';
+import { LEVEL_CAP, rollWild } from './data/encounters.js';
+import { STARTERS } from './data/starters.js';
 
 const LOADSCREEN="assets/images/loadscreen.jpg";
 
@@ -2095,21 +2097,6 @@ function drawKeta(c){
   c.fillRect(10,30,3,2); c.fillRect(12,32,2,2); c.fillRect(13,34,2,2); c.fillRect(14,36,2,2);
 }
 
-// ---------- Wild-Encounter-Tabellen (gewichtet, Level-Range) ----------
-const LEVEL_CAP=67;
-const AREA_CAP={ town:10, kl:10, chb:15, mitte:30 };   // max Wild-Spawn-Level pro Gebiet
-const WILDENC={
-  town:[ {id:'racoon',lv:[3,8],w:5}, {id:'kraehe',lv:[3,8],w:3}, {id:'squirrel',lv:[3,8],w:3} ],
-  chb:[ {id:'kraehe',lv:[8,15],w:3}, {id:'squirrel',lv:[8,15],w:3} ],
-  kl:[ {id:'kraehe',lv:[4,9],w:3}, {id:'squirrel',lv:[4,9],w:3}, {id:'krabbe',lv:[4,9],w:3}, {id:'krabbe2',lv:[8,10],w:1} ],
-  mitte:[ {id:'kraehe',lv:[15,20],w:3}, {id:'kraehe2',lv:[20,26],w:3}, {id:'kraehe3',lv:[26,30],w:1},
-          {id:'squirrel',lv:[15,20],w:3}, {id:'squirrel2',lv:[20,26],w:3}, {id:'squirrel3',lv:[26,30],w:1} ],
-};
-function rollWild(zone){ const t=WILDENC[zone]||WILDENC.town; const cap=AREA_CAP[zone]||LEVEL_CAP; let tot=0; for(const e of t)tot+=e.w; let r=Math.random()*tot;
-  for(const e of t){ r-=e.w; if(r<=0){ let lv=e.lv[0]+((Math.random()*(e.lv[1]-e.lv[0]+1))|0); lv=clamp(lv,3,cap); return {id:e.id,lv}; } }
-  return {id:t[0].id, lv:clamp(t[0].lv[0],3,cap)}; }
-
-
 /* ======================================================================
    LEVEL · XP · EVOLUTION · SWITCH  (data-driven)
    ====================================================================== */
@@ -2906,11 +2893,6 @@ function revealReaction(){ G.state='play'; openDialog('Sören',[
 ], ()=>openStarterSelect()); }
 
 // ---------- Starter-Auswahl ----------
-const STARTERS=[
-  { id:'mephe',   tag:'Chaos-Typ', blurb:'Völlig angezündet. Geht nur loco.' },
-  { id:'ecstasy', tag:'Rave-Typ',  blurb:'Teller wie im Berghain um 6 Uhr.' },
-  { id:'koks',    tag:'Gift-Typ',  blurb:'Wired bis in die Zehenspitzen.' },
-];
 let starterChosen=null, starterIndex=0, starterPick=0, confirmIdx=0;
 function openStarterSelect(){ G.state='starter'; starterIndex=0; }
 function grantStarter(id){
