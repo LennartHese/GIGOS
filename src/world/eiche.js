@@ -14,8 +14,9 @@ import { drawMonAt } from '../systems/dex.js';
 import { makeGigo, kapselAt, caughtRacoon } from '../systems/battle.js';
 import {
   T, lightCv, Lx, setEnterCool, party, dexSeen, dexCaught,
-  cat, hasLeo, setHasLeo, ketaKapseln, setKetaKapseln,
+  hasLeo, setHasLeo, ketaKapseln, setKetaKapseln,
 } from '../main.js';
+import { cat } from './town.js';
 
 /* ======================================================================
    ZEHLENDORF-EICHE — Innenraum (Sörens Versteck)  [Quest 1]
