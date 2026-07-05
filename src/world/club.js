@@ -1,6 +1,6 @@
 import { LW, LH, TILE, X, C, reduce } from '../core/constants.js';
 import { hash, clamp } from '../core/math.js';
-import { LEAF_OAK, canopy, px } from '../core/canvas.js';
+import { LEAF_OAK, canopy } from '../core/canvas.js';
 import { G } from '../core/state.js';
 import { player } from '../entities/player.js';
 import { drawChar, PAL_PLAYER } from '../entities/drawChar.js';
@@ -12,7 +12,7 @@ import {
   OWNER_IMG, BARK_IMG, drawSpriteImg, CLUB_LOADSCREEN,
 } from './mitte.js';
 import {
-  T, lightCv, Lx, sitting, clearSitting, setEnterCool, showDistrictLoad,
+  T, lightCv, Lx, clearSitting, setEnterCool, showDistrictLoad,
   clubcamx, clubcamy, setClubCam, setMitCam, drawPunisherHUD,
 } from '../main.js';
 

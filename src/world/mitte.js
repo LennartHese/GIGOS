@@ -10,7 +10,7 @@ import { rollWild } from '../data/encounters.js';
 import { startBattle } from '../systems/battle.js';
 import { PAL_STUD1, PAL_STUD2 } from './chb.js';
 import {
-  T, lightCv, Lx, encCool, sitting, clearSitting, grassFlash, setGrassFlash,
+  T, lightCv, Lx, encCool, clearSitting, grassFlash, setGrassFlash,
   mitcamx, mitcamy, setMitCam, setCcam, setEnterCool,
 } from '../main.js';
 

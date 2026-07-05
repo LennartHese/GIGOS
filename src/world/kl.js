@@ -6,11 +6,10 @@ import { player } from '../entities/player.js';
 import { drawChar, PAL_PLAYER } from '../entities/drawChar.js';
 import { setBanner, showBanner } from '../ui/banner.js';
 import { toast } from '../ui/toast.js';
-import { openDialog } from '../systems/dialogue.js';
 import { rollWild } from '../data/encounters.js';
 import { startBattle } from '../systems/battle.js';
 import {
-  T, lightCv, Lx, encCool, sitting, clearSitting, grassFlash, setGrassFlash,
+  T, lightCv, Lx, encCool, clearSitting, grassFlash, setGrassFlash,
   klcamx, klcamy, setKlCam, setEnterCool,
 } from '../main.js';
 

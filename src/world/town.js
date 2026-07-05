@@ -1,7 +1,6 @@
 import { LW, LH, TILE, MAPW, MAPH, WPX, HPX, X, C, reduce } from '../core/constants.js';
 import { hash, clamp, pick } from '../core/math.js';
 import { LEAF_LINDEN, LEAF_OAK, canopy, px, shadow } from '../core/canvas.js';
-import { G } from '../core/state.js';
 import { player, facingTo } from '../entities/player.js';
 import { drawChar, PAL_PLAYER, PAL_OMA, PAL_KID, PAL_HAZE, PAL_PASSI } from '../entities/drawChar.js';
 import { toast } from '../ui/toast.js';

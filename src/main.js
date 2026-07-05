@@ -3,48 +3,42 @@
    GIGOS · Zehlendorf Mitte  — 2D top-down, eigene Pixel-Art
    Alles prozedural gezeichnet. Keine Fremd-Assets. Licht von oben-links.
    ====================================================================== */
-import { LW, LH, TILE, MAPW, MAPH, WPX, HPX, cv, X, reduce, C } from './core/constants.js';
-import { hash, clamp, lerp, pick } from './core/math.js';
-import { LEAF_LINDEN, LEAF_OAK, canopy, px, dot, shadow, fit } from './core/canvas.js';
+import { LW, LH, WPX, HPX, cv, X, reduce } from './core/constants.js';
+import { clamp } from './core/math.js';
+import { shadow } from './core/canvas.js';
 import { G } from './core/state.js';
-import { MOVES } from './data/moves.js';
 import { GIGODEX } from './data/gigodex.js';
-import { drawGigoStub, GIGO_IMG, GIGO_TINT } from './entities/creatures.js';
-import { LEVEL_CAP, rollWild } from './data/encounters.js';
 import { STARTERS } from './data/starters.js';
 import { keys } from './core/input.js';
-import { drawChar, drawSit, PAL_PLAYER, PAL_OMA, PAL_KID, PAL_HAZE, PAL_PASSI } from './entities/drawChar.js';
 import { player, movePlayer, facingTo, frontPoint } from './entities/player.js';
-import { setBanner, showBanner } from './ui/banner.js';
+import { showBanner } from './ui/banner.js';
 import { toast } from './ui/toast.js';
-import { openDialog, advanceDialog, choiceState, closeChoice, openChoice, renderChoices, moveChoice, pickChoice } from './systems/dialogue.js';
-import { invOpen, inventory, addItem, renderInv, toggleInv, closeInv } from './systems/inventory.js';
-import { DEX_PAGES, dexPage, dexGridGeom, DEXC, drawBerlinodexIcon, parchmentBG, dexCard, dexFitName, renderDexEntry, openDexEntry, closeDexEntry, dexEntryKey, renderDex, openDex, closeDex, dexKey, drawMonAt } from './systems/dex.js';
-import { storage, pendingCatch, setPendingCatch, openTeam, closeTeam, teamKey, openCatchChoice, catchChoose, catchKey, renderTeam, renderCatchChoice } from './systems/party.js';
-import { readyEvolution, applyEvolution, startEvolution, updateEvolve, evolveKey, renderEvolve } from './systems/evolution.js';
-import { makeGigo, kapselAt, drawKeta, caughtRacoon, startBattle, battleKey, renderBattle, updateBattle } from './systems/battle.js';
-import { blockedEfes, setEfesReturn, buildEfes, enterEfes, exitEfes, talkDoener, renderEfes, tickHealFx } from './world/efes.js';
-import { setCafeReturn, buildCafe, talkBarista, enterCafe, exitCafe, blockedCafe, renderCafe, cafeNpcs, cafeInters } from './world/cafe.js';
-import { setWohnungReturn, buildWohnung, enterWohnung, exitWohnung, blockedWohnung, renderWohnung, wohnungNpcs, wohnungInters } from './world/wohnung.js';
+import { openDialog, advanceDialog, choiceState, closeChoice, openChoice, moveChoice, pickChoice } from './systems/dialogue.js';
+import { invOpen, inventory, addItem, renderInv, toggleInv } from './systems/inventory.js';
+import { DEX_PAGES, dexPage, dexGridGeom, drawBerlinodexIcon, renderDexEntry, openDexEntry, closeDexEntry, dexEntryKey, renderDex, openDex, closeDex, dexKey } from './systems/dex.js';
+import { openTeam, closeTeam, teamKey, catchChoose, catchKey, renderTeam, renderCatchChoice } from './systems/party.js';
+import { updateEvolve, evolveKey, renderEvolve } from './systems/evolution.js';
+import { battleKey, renderBattle, updateBattle } from './systems/battle.js';
+import { blockedEfes, buildEfes, enterEfes, exitEfes, talkDoener, renderEfes, tickHealFx } from './world/efes.js';
+import { buildCafe, talkBarista, enterCafe, exitCafe, blockedCafe, renderCafe, cafeNpcs, cafeInters } from './world/cafe.js';
+import { buildWohnung, enterWohnung, exitWohnung, blockedWohnung, renderWohnung, wohnungNpcs, wohnungInters } from './world/wohnung.js';
 import {
-  setEicheReturn, blockedEiche, buildEiche, enterEiche, exitEiche, talkSoeren, renderEiche,
+  blockedEiche, buildEiche, enterEiche, exitEiche, talkSoeren, renderEiche,
   obenUnlocked, blockedEicheOben, buildEicheOben, renderEicheOben, enterEicheOben, exitEicheOben,
-  drawFade, stepCutscene, stepReveal, selectStarter, getStarterPick, grantStarter, wrapCenter,
+  drawFade, stepCutscene, stepReveal, selectStarter, getStarterPick, grantStarter,
   STC, renderStarterSelect, renderStarterConfirm, starterKey, talkSoerenOben,
 } from './world/eiche.js';
 import {
   chbInters, chbDoors, chbNpcs, buildCHB, blockedCHB, checkEncounterCHB,
-  renderCHB, enterCHB, exitCHB, PAL_GIRL, PAL_STUD1, PAL_STUD2, cground,
+  renderCHB, enterCHB, exitCHB,
 } from './world/chb.js';
 import {
   klInters, klDoors, buildKL, blockedKL, checkEncounterKL, klJump, startKLJump,
   updateKLJump, renderKL, enterKL, exitKL,
 } from './world/kl.js';
 import {
-  MITW, MITH, MITPX, MITHPX, mitInters, mitDoors, mitNpcs, buildMitte, blockedMitte,
+  MITPX, MITHPX, mitInters, mitDoors, mitNpcs, buildMitte, blockedMitte,
   checkEncounterMitte, renderMitte, enterMitte, exitMitte,
-  PAL_WAITER, PAL_HIP, PAL_CLUB1, PAL_CLUB2, PAL_CLUB3,
-  TUER_IMG, OWNER_IMG, BARK_IMG, drawSpriteImg, CLUB_LOADSCREEN,
 } from './world/mitte.js';
 import {
   clubInters, clubDoors, clubNpcs, buildClub, blockedClub, renderClub, enterClub, exitClub,
