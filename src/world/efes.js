@@ -59,6 +59,10 @@ export function buildEfes(){
   // Glasvitrine
   c.fillStyle='rgba(180,220,235,.30)'; c.fillRect(150,42,84,12); c.fillStyle='#9ec6d6'; c.fillRect(150,42,84,1);
   c.fillStyle='#caa86e'; c.fillRect(154,49,76,4);
+  // Akh-Lager-Terminal (alter Röhrenmonitor auf der Theke)
+  c.fillStyle='#2a2a30'; c.fillRect(180,36,20,16); c.fillStyle='#1c1c22'; c.fillRect(182,38,16,11);
+  c.fillStyle='#3a8a5a'; c.fillRect(183,39,14,9); c.fillStyle='#8ae8b0'; c.fillRect(184,40,3,1); c.fillRect(184,42,6,1); c.fillRect(184,44,4,1);
+  c.fillStyle='#1c1c22'; c.fillRect(186,52,8,3); c.fillStyle='#141418'; c.fillRect(178,55,24,2);
   // Dönerspieß
   c.fillStyle='#3a3a42'; c.fillRect(70,22,3,32);
   c.fillStyle='#7a4a2a'; c.fillRect(63,26,16,24);
@@ -100,7 +104,7 @@ export function talkDoener(){
     'Na, Alta! Komm rin, komm rin. Setz dir hin — deine Viecher sehn ja fix und fertich aus.',
     'Emaaa— einmal Heilung mit alles, ohne Zwiebeln. *fuchtelt mitm Messer* ...zack. Wie neu, Habibi.',
     'So. Frisch wie Fladenbrot ausm Ofen, deine Gigos. Und nu raus mit dir, ick hab Kundschaft.']);
-  healFx=0.8; for(const g of party) g.hp=g.maxHP; toast('Deine Gigos sind wieder topfit! ✨',2200);
+  healFx=0.8; for(const g of party){ g.hp=g.maxHP; if(g.atk0!=null) g.atk=g.atk0; g.skipChance=0; g.selfHitChance=0; } toast('Deine Gigos sind wieder topfit! ✨',2200);
 }
 
 export function renderEfes(){

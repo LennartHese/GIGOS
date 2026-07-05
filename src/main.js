@@ -16,7 +16,7 @@ import { toast } from './ui/toast.js';
 import { openDialog, advanceDialog, choiceState, closeChoice, openChoice, moveChoice, pickChoice } from './systems/dialogue.js';
 import { invOpen, inventory, addItem, renderInv, toggleInv } from './systems/inventory.js';
 import { DEX_PAGES, dexPage, dexGridGeom, drawBerlinodexIcon, renderDexEntry, openDexEntry, closeDexEntry, dexEntryKey, renderDex, openDex, closeDex, dexKey } from './systems/dex.js';
-import { openTeam, closeTeam, teamKey, catchChoose, catchKey, renderTeam, renderCatchChoice } from './systems/party.js';
+import { openTeam, closeTeam, teamKey, catchChoose, catchKey, renderTeam, renderCatchChoice, openStorage, closeStorage, storageKey, renderStorage } from './systems/party.js';
 import { updateEvolve, evolveKey, renderEvolve } from './systems/evolution.js';
 import { battleKey, renderBattle, updateBattle } from './systems/battle.js';
 import { blockedEfes, buildEfes, enterEfes, exitEfes, talkDoener, renderEfes, tickHealFx } from './world/efes.js';
@@ -42,8 +42,17 @@ import {
 } from './world/mitte.js';
 import {
   clubInters, clubDoors, clubNpcs, buildClub, blockedClub, renderClub, enterClub, exitClub,
-  CLUBPX, CLUBHPX,
+  CLUBPX, CLUBHPX, talkOwner, talkBarkeeper, renderClubEnding, clubEndingKey,
 } from './world/club.js';
+import {
+  fxInters, fxDoors, fxNpcs, buildFhxb, blockedFhxb, checkEncounterFhxb, updateFhxbEvents,
+  renderFhxb, enterFhxb, exitFhxb, FXPX, FXHPX, talkAnja,
+} from './world/fhxb.js';
+import {
+  tpInters, tpDoors, tpNpcs, buildTempelhof, blockedTempelhof, checkEncounterTempelhof,
+  renderTempelhof, enterTempelhof, exitTempelhof, TFPX, TFHPX,
+  openBierball, closeBierball, updateBierball, bierballKey, renderBierball,
+} from './world/tempelhof.js';
 import {
   doors, inters, npcs, cat, raven, buildWorld, blockedTown, checkEncounterTown, renderTown,
   setLastTile,
@@ -94,6 +103,7 @@ function canvasXY(e){ const r=cv.getBoundingClientRect(); const t=(e.touches&&e.
   return { x:(t.clientX-r.left)/r.width*LW, y:(t.clientY-r.top)/r.height*LH }; }
 function tapCanvas(e){ if(e&&e.preventDefault)e.preventDefault(); const now=Date.now(); if(now-lastTapT<230) return; lastTapT=now;
   if(G.state==='team'){ closeTeam(); return; }
+  if(G.state==='storage'){ onKey('e'); return; }
   if(G.state==='catchChoice'){ const p=canvasXY(e); const bw=224,bh=112,bx=(LW-bw)/2,by=(LH-bh)/2;
     if(p.y>=by+bh-22&&p.y<=by+bh-5){ if(p.x>=bx+8&&p.x<=bx+110){ catchChoose(true); return; } if(p.x>=bx+bw-110&&p.x<=bx+bw-8){ catchChoose(false); return; } }
     return;
@@ -120,6 +130,8 @@ function tapCanvas(e){ if(e&&e.preventDefault)e.preventDefault(); const now=Date
   }
   if(G.state==='dialog'){ if(choiceState) return; advanceDialog(); return; }
   if(G.state==='evolve'){ onKey('e'); return; }
+  if(G.state==='clubEnding'){ onKey('e'); return; }
+  if(G.state==='bierball'){ onKey('e'); return; }
   if(G.state==='battle'){ onKey('e'); return; }
   if(G.state==='play'){ onKey('e'); return; }
 }
@@ -156,6 +168,7 @@ function startClubCutscene(){ gateWalk=1.1; player.dir='up'; player.step=0; }
 function onKey(k){
   if(k==='p' && inventory.includes('bluePunisher') && (G.state==='play'||G.state==='battle')){ popPunisher(); return; }
   if(G.state==='team'){ teamKey(k); return; }
+  if(G.state==='storage'){ storageKey(k); return; }
   if(G.state==='catchChoice'){ catchKey(k); return; }
   if(G.state==='evolve'){ evolveKey(k); return; }
   if(G.state==='cutscene'||G.state==='reveal') return;
@@ -163,6 +176,8 @@ function onKey(k){
   if(G.state==='dex'){ dexKey(k); return; }
   if(G.state==='dexEntry'){ dexEntryKey(k); return; }
   if(G.state==='battle'){ battleKey(k); return; }
+  if(G.state==='clubEnding'){ clubEndingKey(k); return; }
+  if(G.state==='bierball'){ bierballKey(k); return; }
   if(G.state==='title'){ if(k==='enter'||k===' '||k==='e'){ startGame(); } return; }
   if(k==='b' && G.state==='play' && !invOpen){ openDex(); return; }
   if(k==='t' && G.state==='play' && !invOpen){ openTeam(); return; }
@@ -178,6 +193,8 @@ function startGame(){ document.getElementById('title').style.display='none'; G.s
 function tryInteract(){
   const {fx,fy}=frontPoint();
   if(G.scene==='efes'){
+    // Akh-Lager-Terminal (schmaler Bereich auf der Theke, Vorrang vor dem Dönermann)
+    if(player.dir==='up' && fy<108 && Math.abs(player.x+8-190)<12){ toast('Der Dönermann tippt auf den alten Röhrenmonitor. "Deine Akhs, alle da drin."',2400); openStorage(); return; }
     // Dönermann (über die Theke, nach oben schauend)
     if(fy<108 && player.x+8>54 && player.x+8<266){ talkDoener(); return; }
     // Ausgang
@@ -205,7 +222,8 @@ function tryInteract(){
     if(player.dir==='up' && player.y<92 && player.x+8>30 && player.x+8<150){ talkBarista(); return; }
     if(player.y>=150 && Math.abs(player.x+8-160)<22){ exitCafe(); return; }
     for(const n of cafeNpcs){ if(n.counter) continue; if(Math.abs(n.x+8-fx)<13 && Math.abs(n.y+16-fy)<15){ n.dir=(player.x<n.x?'left':'right'); openDialog(n.who,n.lines); return; } }
-    for(const it of cafeInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ openDialog(it.who,it.lines); return; } }
+    for(const it of cafeInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){
+      if(it.who==='Akh-Lager'){ toast('Der Kiosk-Bildschirm blinkt. "Willkommen im Akh-Lager."',2400); openStorage(); } else { openDialog(it.who,it.lines); } return; } }
     return;
   }
   if(G.scene==='wohnung'){
@@ -215,7 +233,7 @@ function tryInteract(){
     return;
   }
   if(G.scene==='chb'){
-    for(const d of chbDoors){ if(fx>=d.x-2&&fx<=d.x+d.w+2&&fy>=d.y-2&&fy<=d.y+d.h+2){ if(d.to==='town') exitCHB(); else if(d.to==='cafe') enterCafe(); else if(d.to==='wohnung') enterWohnung(); else if(d.to==='mitte') enterMitte(); return; } }
+    for(const d of chbDoors){ if(fx>=d.x-2&&fx<=d.x+d.w+2&&fy>=d.y-2&&fy<=d.y+d.h+2){ if(d.to==='town') exitCHB(); else if(d.to==='cafe') enterCafe(); else if(d.to==='wohnung') enterWohnung(); else if(d.to==='mitte') enterMitte(); else if(d.to==='tempelhof') enterTempelhof(); return; } }
     for(const n of chbNpcs){ if(Math.abs(n.x+8-fx)<12 && Math.abs(n.y+16-fy)<14){ n.dir=(player.x<n.x?'left':'right'); openDialog(n.who,n.lines); return; } }
     for(const it of chbInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ if(it.who==='Bank'){ sitDown(it); } else { openDialog(it.who,it.lines); } return; } }
     return;
@@ -230,14 +248,30 @@ function tryInteract(){
     for(const n of clubNpcs){ if(Math.abs(n.x+8-fx)<13 && Math.abs(n.y+16-fy)<16){ n.dir=(player.x<n.x?'left':'right');
       if(n.who==='Gnarley Gustav'){ questGustav=true; openDialog(n.who,n.lines); }
       else if(n.who==='Dealer'){ dealerTalk(); }
+      else if(n.who==='Owner'){ talkOwner(); }
+      else if(n.who==='Barkeeperin'){ talkBarkeeper(); }
       else openDialog(n.who,n.lines); return; } }
     for(const it of clubInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ if(it.who==='Karussell'){ sitDown(it); } else { openDialog(it.who,it.lines); } return; } }
     return;
   }
   if(G.scene==='mitte'){
-    for(const d of mitDoors){ if(fx>=d.x-2&&fx<=d.x+d.w+2&&fy>=d.y-2&&fy<=d.y+d.h+2){ if(d.to==='chb') exitMitte(); else if(d.to==='club'){ if(clubUnlocked) enterClub(); else gateStart(); } return; } }
+    for(const d of mitDoors){ if(fx>=d.x-2&&fx<=d.x+d.w+2&&fy>=d.y-2&&fy<=d.y+d.h+2){ if(d.to==='chb') exitMitte(); else if(d.to==='fhxb') enterFhxb(); else if(d.to==='club'){ if(clubUnlocked) enterClub(); else gateStart(); } return; } }
     for(const n of mitNpcs){ if(Math.abs(n.x+8-fx)<12 && Math.abs(n.y+16-fy)<14){ n.dir=(player.x<n.x?'left':'right'); if(n.who==='Tuersteherin'){ gateStart(); } else openDialog(n.who,n.lines); return; } }
     for(const it of mitInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ openDialog(it.who,it.lines); return; } }
+    return;
+  }
+  if(G.scene==='fhxb'){
+    for(const d of fxDoors){ if(fx>=d.x-2&&fx<=d.x+d.w+2&&fy>=d.y-2&&fy<=d.y+d.h+2){ if(d.to==='mitte') exitFhxb(); return; } }
+    for(const n of fxNpcs){ if(Math.abs(n.x+8-fx)<13 && Math.abs(n.y+16-fy)<16){ n.dir=(player.x<n.x?'left':'right');
+      if(n.who==='Ayahuasca Anja'){ talkAnja(); } else openDialog(n.who,n.lines); return; } }
+    for(const it of fxInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ openDialog(it.who,it.lines); return; } }
+    return;
+  }
+  if(G.scene==='tempelhof'){
+    for(const d of tpDoors){ if(fx>=d.x-2&&fx<=d.x+d.w+2&&fy>=d.y-2&&fy<=d.y+d.h+2){ if(d.to==='chb') exitTempelhof(); return; } }
+    for(const n of tpNpcs){ if(Math.abs(n.x+8-fx)<13 && Math.abs(n.y+16-fy)<16){ n.dir=(player.x<n.x?'left':'right');
+      if(n.who==='Bierball-Gastgeber'){ openDialog(n.who,n.lines,()=>openBierball()); } else openDialog(n.who,n.lines); return; } }
+    for(const it of tpInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ openDialog(it.who,it.lines); return; } }
     return;
   }
   // --- Stadt ---
@@ -258,7 +292,8 @@ export let camx=0,camy=0; export let T=0;
 function update(dt){
   if(loveAura>0) loveAura-=dt;
   if(gateWalk>0){ gateWalk-=dt; player.y-=20*dt; player.step=(player.step||0)+dt*8; player.frame=1+((player.step|0)%2); T+=dt; if(gateWalk<=0){ player.frame=0; enterClub(); } return; }
-  if(G.state==='team'||G.state==='catchChoice'){ T+=dt; return; }
+  if(G.state==='team'||G.state==='catchChoice'||G.state==='storage'||G.state==='clubEnding'){ T+=dt; return; }
+  if(G.state==='bierball'){ T+=dt; updateBierball(dt); return; }
   if(G.state==='cutscene'){ T+=dt; stepCutscene(dt); return; }
   if(G.state==='reveal'){ T+=dt; stepReveal(dt); return; }
   if(G.state==='starter'||G.state==='starterConfirm'){ T+=dt; return; }
@@ -303,7 +338,7 @@ function update(dt){
       movePlayer(dt,blockedCHB);
       if(enterCool>0){ enterCool-=dt; }
       else { const fx=player.x+4, fy=player.y+15;
-        for(const d of chbDoors){ if(fx<d.x+d.w&&fx+8>d.x&&fy<d.y+d.h&&fy+6>d.y){ if(d.to==='town'){ exitCHB(); break; } else if(d.to==='cafe'){ enterCafe(); break; } else if(d.to==='wohnung'){ enterWohnung(); break; } else if(d.to==='mitte'){ enterMitte(); break; } } } }
+        for(const d of chbDoors){ if(fx<d.x+d.w&&fx+8>d.x&&fy<d.y+d.h&&fy+6>d.y){ if(d.to==='town'){ exitCHB(); break; } else if(d.to==='cafe'){ enterCafe(); break; } else if(d.to==='wohnung'){ enterWohnung(); break; } else if(d.to==='mitte'){ enterMitte(); break; } else if(d.to==='tempelhof'){ enterTempelhof(); break; } } } }
       if(encCool>0) encCool-=dt;
       checkEncounterCHB();
     }
@@ -322,10 +357,27 @@ function update(dt){
     movePlayer(dt,blockedMitte);
     if(enterCool>0){ enterCool-=dt; }
     else { const fx=player.x+4, fy=player.y+15;
-      for(const d of mitDoors){ if(fx<d.x+d.w&&fx+8>d.x&&fy<d.y+d.h&&fy+6>d.y){ if(d.to==='chb'){ exitMitte(); break; } else if(d.to==='club' && clubUnlocked){ enterClub(); break; } } } }
+      for(const d of mitDoors){ if(fx<d.x+d.w&&fx+8>d.x&&fy<d.y+d.h&&fy+6>d.y){ if(d.to==='chb'){ exitMitte(); break; } else if(d.to==='fhxb'){ enterFhxb(); break; } else if(d.to==='club' && clubUnlocked){ enterClub(); break; } } } }
     if(encCool>0) encCool-=dt;
     checkEncounterMitte();
     mitcamx=clamp(player.x+8-LW/2,0,MITPX-LW); mitcamy=clamp(player.y+16-LH/2,0,MITHPX-LH);
+  } else if(G.state==='play' && G.scene==='fhxb'){
+    movePlayer(dt,blockedFhxb);
+    if(enterCool>0){ enterCool-=dt; }
+    else { const fx=player.x+4, fy=player.y+15;
+      for(const d of fxDoors){ if(fx<d.x+d.w&&fx+8>d.x&&fy<d.y+d.h&&fy+6>d.y){ if(d.to==='mitte'){ exitFhxb(); break; } } } }
+    if(encCool>0) encCool-=dt;
+    checkEncounterFhxb();
+    updateFhxbEvents(dt);
+    fhxbcamx=clamp(player.x+8-LW/2,0,FXPX-LW); fhxbcamy=clamp(player.y+16-LH/2,0,FXHPX-LH);
+  } else if(G.state==='play' && G.scene==='tempelhof'){
+    movePlayer(dt,blockedTempelhof);
+    if(enterCool>0){ enterCool-=dt; }
+    else { const fx=player.x+4, fy=player.y+15;
+      for(const d of tpDoors){ if(fx<d.x+d.w&&fx+8>d.x&&fy<d.y+d.h&&fy+6>d.y){ if(d.to==='chb'){ exitTempelhof(); break; } } } }
+    if(encCool>0) encCool-=dt;
+    checkEncounterTempelhof();
+    tpcamx=clamp(player.x+8-LW/2,0,TFPX-LW); tpcamy=clamp(player.y+16-LH/2,0,TFHPX-LH);
   } else if(G.state==='play' && G.scene==='club'){
     if(sitting){
       if(keys['w']||keys['a']||keys['s']||keys['d']||keys['arrowup']||keys['arrowdown']||keys['arrowleft']||keys['arrowright']) standUp();
@@ -360,6 +412,14 @@ function update(dt){
     if(!reduce) for(const n of clubNpcs){ if(n.play){ n.t+=dt; n.frame=1+((n.t*4|0)%2); } }
     clubcamx=clamp(player.x+8-LW/2,0,CLUBPX-LW); clubcamy=clamp(player.y+16-LH/2,0,CLUBHPX-LH);
   }
+  if(G.scene==='fhxb'){
+    if(!reduce) for(const n of fxNpcs){ if(n.play){ n.t+=dt; n.frame=1+((n.t*3|0)%2); } else if(n.wander){ n.t+=dt; const off=Math.sin(n.t*0.6)*(n.range||16); const tgt=n.base+off; const old=n.x; n.x+=clamp(tgt-n.x,-12*dt,12*dt); n.dir=n.x>old+0.02?'right':n.x<old-0.02?'left':n.dir; n.frame=Math.abs(n.x-old)>0.05?1+((n.t*5|0)%2):0; } }
+    fhxbcamx=clamp(player.x+8-LW/2,0,FXPX-LW); fhxbcamy=clamp(player.y+16-LH/2,0,FXHPX-LH);
+  }
+  if(G.scene==='tempelhof'){
+    if(!reduce) for(const n of tpNpcs){ if(n.play){ n.t+=dt; n.frame=1+((n.t*3|0)%2); } else if(n.wander){ n.t+=dt; const off=Math.sin(n.t*0.6)*(n.range||16); const tgt=n.base+off; const old=n.x; n.x+=clamp(tgt-n.x,-12*dt,12*dt); n.dir=n.x>old+0.02?'right':n.x<old-0.02?'left':n.dir; n.frame=Math.abs(n.x-old)>0.05?1+((n.t*5|0)%2):0; } }
+    tpcamx=clamp(player.x+8-LW/2,0,TFPX-LW); tpcamy=clamp(player.y+16-LH/2,0,TFHPX-LH);
+  }
   T+=dt;
 }
 
@@ -373,8 +433,11 @@ function _render(){
   if(G.state==='dex'||G.state==='dexEntry'){ setDexRes(true); if(G.state==='dex') renderDex(); else renderDexEntry(); return; }
   setDexRes(false);
   if(G.state==='team'){ renderTeam(); return; }
+  if(G.state==='storage'){ renderStorage(); return; }
   if(G.state==='catchChoice'){ renderCatchChoice(); return; }
   if(G.state==='evolve'){ renderEvolve(); return; }
+  if(G.state==='clubEnding'){ renderClubEnding(); return; }
+  if(G.state==='bierball'){ renderBierball(); return; }
   if(G.state==='cutscene'){ if(G.scene==='eicheOben') renderEicheOben(); else renderEiche(); drawFade(); return; }
   if(G.state==='reveal'){ renderEicheOben(); return; }
   if(G.state==='starter'){ renderStarterSelect(); return; }
@@ -391,6 +454,8 @@ function _render(){
   if(G.scene==='kl'){ renderKL(); return; }
   if(G.scene==='mitte'){ renderMitte(); return; }
   if(G.scene==='club'){ renderClub(); return; }
+  if(G.scene==='fhxb'){ renderFhxb(); return; }
+  if(G.scene==='tempelhof'){ renderTempelhof(); return; }
   renderTown();
 }
 
@@ -403,6 +468,10 @@ export let mitcamx=0, mitcamy=0;
 export function setMitCam(x,y){ mitcamx=x; mitcamy=y; }
 export let clubcamx=0, clubcamy=0;
 export function setClubCam(x,y){ clubcamx=x; clubcamy=y; }
+export let fhxbcamx=0, fhxbcamy=0;
+export function setFhxbCam(x,y){ fhxbcamx=x; fhxbcamy=y; }
+export let tpcamx=0, tpcamy=0;
+export function setTpCam(x,y){ tpcamx=x; tpcamy=y; }
 export function setEnterCool(v){ enterCool=v; }
 
 export let clastTile=-1;
@@ -435,6 +504,8 @@ export const dexSeen = new Set(), dexCaught = new Set();
 export let ketaKapseln = 5;
 export function useKetaKapsel(){ ketaKapseln--; }
 export function setKetaKapseln(v){ ketaKapseln=v; }
+export let akhTaler = 0;               // Club-Waehrung, Belohnung fuer den Owner-Sieg
+export function addAkhTaler(n){ akhTaler=Math.max(0,akhTaler+n); }
 export function relevelStats(m){ const b=GIGODEX[m.id]; const f=(s)=>Math.max(1,Math.round(s*(1+0.10*(m.level-1))));
   const oldMax=m.maxHP; const newMax=Math.round(b.hp*(1+0.12*(m.level-1)))+5;
   m.maxHP=newMax; m.hp=Math.min(newMax, Math.max(1,m.hp)+(newMax-oldMax)); m.atk=f(b.atk); m.def=f(b.def); m.spd=f(b.spd); }
@@ -481,6 +552,8 @@ buildCHB();
 buildKL();
 buildMitte();
 buildClub();
+buildFhxb();
+buildTempelhof();
 document.getElementById('loadImg').src=LOADSCREEN;
 
 let last=performance.now();

@@ -13,9 +13,10 @@ import { readyEvolution, startEvolution } from './evolution.js';
 
 export function makeGigo(id, level){
   const b=GIGODEX[id]; const f=(s)=>Math.max(1,Math.round(s*(1+0.10*(level-1))));
-  const maxHP=Math.round(b.hp*(1+0.12*(level-1)))+5;
-  return { id, name:b.name, level, maxHP, hp:maxHP, atk:f(b.atk), def:f(b.def), spd:f(b.spd),
-    catch:b.catch||45, type:b.type, moves:(b.moves||['kratzer']).slice(0,4), xp:0, xpNext:xpToNextLevel(level) };
+  const maxHP=Math.round(b.hp*(1+0.12*(level-1)))+5; const atk0=f(b.atk);
+  return { id, name:b.name, level, maxHP, hp:maxHP, atk:atk0, atk0, def:f(b.def), spd:f(b.spd),
+    catch:b.catch||45, type:b.type, moves:(b.moves||['kratzer']).slice(0,4), xp:0, xpNext:xpToNextLevel(level),
+    dmgBuff:0, skipChance:0, selfHitChance:0, statusImmune:false };
 }
 function catchChance(en, bonus){ bonus=bonus||1;
   const hpF=(3*en.maxHP-2*en.hp)/(3*en.maxHP);
@@ -23,7 +24,7 @@ function catchChance(en, bonus){ bonus=bonus||1;
   return clamp((en.catch/255)*hpF*lvlP*bonus, 0.05, 0.95);
 }
 function calcDamage(att, def, mv){
-  const base=(att.atk*mv.pow)/(def.def+10);
+  const base=(att.atk*(1+(att.dmgBuff||0))*mv.pow)/(def.def+10);
   const rng=0.85+Math.random()*0.3;
   return Math.max(1, Math.round(base*(1+att.level*0.05)*rng));
 }
@@ -85,7 +86,19 @@ function grantBattleXP(){
   for(const lv of ups) battle.queue.push({text:killer.name+' ist jetzt Level '+lv+'!'});
   const evo=readyEvolution(killer);
   if(evo){ battle.pendingEvo={mon:killer, to:evo}; }
-  battle.queue.push({ text:E.name+' verzieht sich.', then:()=>{ battle.over=true; battle.win='win'; } });
+  if(battle.enemyIdx<battle.enemyTeam.length-1){
+    battle.queue.push({ text:E.name+' geht zu Boden!', then:()=>{ sendNextEnemy(); } });
+  } else {
+    const text = battle.type==='wild' ? (E.name+' verzieht sich.') : (E.name+' ist besiegt!');
+    battle.queue.push({ text, then:()=>{ battle.over=true; battle.win='win'; } });
+  }
+}
+function sendNextEnemy(){
+  battle.enemyIdx++;
+  const spec=battle.enemyTeam[battle.enemyIdx];
+  const nextE=makeGigo(spec.id, spec.level); dexSeen.add(spec.id);
+  battle.enemy=nextE; battle.hpE=nextE.hp; battle.flashE=0; battle.shakeE=0; battle.lungeE=0;
+  battle.queue.push({text:(battle.trainerName||'Der Gegner')+' schickt '+nextE.name+' ins Rennen!'});
 }
 
 // --- battleSwitchSystem ---
@@ -107,12 +120,16 @@ let battle=null;
 export let caughtRacoon = false;    // Soeren-Quest erfuellt
 const caughtGigos = [];      // gefangene
 const EN_CX=236, EN_CY=74, PL_CX=72, PL_CY=130, CAP_X=236, CAP_Y=84;
-export function startBattle(enemyId, level, ret, type){
+export function startBattle(enemyId, level, ret, type, opts){
+  opts=opts||{};
   const active=party.find(m=>m.hp>0);
   if(!active){ toast('Dein Team ist k.o. — heil dich bei Efes!',2400); return false; }
-  const enemy=makeGigo(enemyId, level); dexSeen.add(enemyId);
-  battle={ enemy, player:active, type:type||'wild', phase:'msg', menuIndex:0, moveIndex:0, partyIndex:0, forceSwitch:false, forcedFaint:false, pendingEvo:null,
-    queue:[{text:'Ein wildes '+enemy.name+' taucht auf!'}], pending:null,
+  const team = (opts.team&&opts.team.length) ? opts.team : [{id:enemyId, level}];
+  const enemy=makeGigo(team[0].id, team[0].level); dexSeen.add(team[0].id);
+  const introText = opts.trainerName ? (opts.trainerName+' fordert dich zum Kampf heraus!') : ('Ein wildes '+enemy.name+' taucht auf!');
+  battle={ enemy, player:active, type:type||'wild', enemyTeam:team, enemyIdx:0, trainerName:opts.trainerName||null, onWin:opts.onWin||null,
+    phase:'msg', menuIndex:0, moveIndex:0, partyIndex:0, forceSwitch:false, forcedFaint:false, pendingEvo:null,
+    queue:[{text:introText}], pending:null,
     ret:ret||G.scene, over:false, win:null,
     hpE:enemy.hp, hpP:active.hp,
     flashE:0, flashP:0, shakeE:0, shakeP:0, lungeP:0, lungeE:0, hitFx:null,
@@ -120,8 +137,25 @@ export function startBattle(enemyId, level, ret, type){
   G.scene='battle'; G.state='battle'; setGrassFlash(0);
   return true;
 }
+function faintCheck(who, isWho){ // isWho: true=Spieler-seitig
+  if(who.hp>0) return;
+  if(isWho) battle.queue.push({ text:who.name+' ist k.o.!', then:()=>{ handleFaint(); } });
+  else battle.queue.push({ text:who.name+' wurde besiegt!', then:()=>{ grantBattleXP(); } });
+}
 function buildMove(att, def, mvId, side){
   const mv=MOVES[mvId]; const isP=(side==='p'); const tf=(isP?'E':'P');
+  if(att.skipChance>0 && Math.random()<att.skipChance){
+    battle.queue.push({text:att.name+' ist zu verpeilt und tut diese Runde gar nichts.'});
+    return;
+  }
+  if(att.selfHitChance>0 && Math.random()<att.selfHitChance){
+    battle.queue.push({text:att.name+' dreht komplett durch...', then:()=>{
+      const dmg=Math.max(1,Math.round(att.atk*0.4)); att.hp=Math.max(0,att.hp-dmg); battle._dmg=dmg;
+      battle['flash'+(isP?'P':'E')]=0.35; battle['shake'+(isP?'P':'E')]=0.4;
+    }});
+    battle.queue.push({ text:()=>att.name+' verpasst sich selbst '+battle._dmg+' Schaden!', then:()=>{ faintCheck(att, isP); } });
+    return;
+  }
   battle.queue.push({text:att.name+' setzt '+mv.name+' ein!', then:()=>{ battle['lunge'+(isP?'P':'E')]=1; }});
   if(Math.random()>mv.acc){ battle.queue.push({text:'Daneben!'}); return; }
   if(mv.pow>0){
@@ -130,13 +164,24 @@ function buildMove(att, def, mvId, side){
       battle['flash'+tf]=0.35; battle['shake'+tf]=0.4; battle['lunge'+(isP?'P':'E')]=1;
       battle.hitFx={ x:(isP?EN_CX:PL_CX), y:(isP?EN_CY:PL_CY), t:0.45, tt:0.45 };
     }});
-    battle.queue.push({ text:()=>def.name+' nimmt '+battle._dmg+' Schaden!', then:()=>{
-      if(def.hp<=0){ if(isP){ battle.queue.push({ text:def.name+' wurde besiegt!', then:()=>{ grantBattleXP(); } }); }
-        else { battle.queue.push({ text:def.name+' ist k.o.!', then:()=>{ handleFaint(); } }); } }
+    battle.queue.push({ text:()=>def.name+' nimmt '+battle._dmg+' Schaden!', then:()=>{ faintCheck(def, !isP); } });
+  } else if(mv.eff==='atkdown' || mv.eff==='skip' || mv.eff==='selfhit'){
+    if(def.statusImmune){ battle.queue.push({ text:def.name+' ist immun und laesst sich nicht beeindrucken!' }); return; }
+    battle.queue.push({ text:mv.desc, then:()=>{
+      if(mv.eff==='atkdown') def.atk=Math.max(1,Math.round(def.atk*(1-mv.val)));
+      else if(mv.eff==='skip') def.skipChance=mv.val;
+      else def.selfHitChance=mv.val;
     }});
-  } else if(mv.eff==='atkdown'){
-    battle.queue.push({ text:mv.desc, then:()=>{ def.atk=Math.max(1,Math.round(def.atk*0.8)); }});
-    battle.queue.push({ text:def.name+' ist eingeschuechtert. Angriff sinkt!' });
+    if(mv.eff==='atkdown') battle.queue.push({ text:def.name+' ist eingeschuechtert. Angriff sinkt!' });
+  } else if(mv.eff==='teamdmg'){
+    const team=isP?party:[battle.enemy];
+    battle.queue.push({ text:mv.desc, then:()=>{ for(const m of team) if(m.hp>0) m.dmgBuff=(m.dmgBuff||0)+mv.val; }});
+  } else if(mv.eff==='teamheal'){
+    const team=isP?party:[battle.enemy];
+    battle.queue.push({ text:mv.desc, then:()=>{ for(const m of team){ if(m.hp<=0) continue;
+      m.hp=Math.min(m.maxHP, m.hp+Math.round(m.maxHP*mv.val)); m.atk=m.atk0; m.skipChance=0; m.selfHitChance=0; } }});
+  } else if(mv.eff==='immune'){
+    battle.queue.push({ text:mv.desc, then:()=>{ att.statusImmune=true; }});
   } else { battle.queue.push({ text:mv.desc }); }
 }
 function startMoveTurn(mvId){
@@ -192,11 +237,12 @@ function onCaught(E){ dexCaught.add(E.id); caughtGigos.push(E);
   else { setPendingCatch(E); toast('🧪 '+E.name+' gefangen! Dein Team ist voll…',2400); }
 }
 function endBattle(){
-  const ret=battle.ret, win=battle.win, p=battle.player, evo=battle.pendingEvo;
+  const ret=battle.ret, win=battle.win, p=battle.player, evo=battle.pendingEvo, onWin=battle.onWin;
   if(win==='lose'){ p.hp=Math.max(1,Math.round(p.maxHP*0.25)); toast('Dein Team ist erschoepft. Heil dich bei Efes!',2800); }
   G.scene=ret; G.state='play'; battle=null; resetAfterBattle();
   if(evo){ startEvolution(evo.mon, evo.to); return; }
-  if(pendingCatch){ openCatchChoice(); }
+  if(pendingCatch){ openCatchChoice(); return; }
+  if(win==='win' && onWin){ onWin(); }
 }
 function battleAdvance(){
   const step=battle.queue[0]; if(step&&step.then) step.then(); battle.queue.shift();
@@ -207,7 +253,9 @@ function battleAdvance(){
   if(battle.forcedFaint){ battle.forcedFaint=false; openPartyMenu(true); return; }
   battle.phase='menu';
 }
-function selectMenu(i){ if(i===0){ battle.phase='moves'; battle.moveIndex=0; } else if(i===1){ openPartyMenu(false); } else if(i===2){ startCatch(); } else { startFlee(); } }
+function selectMenu(i){ if(i===0){ battle.phase='moves'; battle.moveIndex=0; } else if(i===1){ openPartyMenu(false); }
+  else if(i===2){ if(battle.type==='trainer'||battle.type==='boss'){ battle.phase='msg'; battle.queue=[{text:'Trainer-Akhs lassen sich nicht fangen!'}]; battle.pending=null; } else startCatch(); }
+  else { startFlee(); } }
 export function battleKey(k){
   if(!battle) return;
   if(battle.phase==='anim') return;
@@ -297,6 +345,7 @@ export function renderBattle(){
   }
   // HP boxes
   drawHPBoxB(12,14,b.enemy,b.hpE,false);
+  if(b.enemyTeam && b.enemyTeam.length>1){ X.fillStyle='#cdbfa6'; X.font='bold 8px Georgia'; X.textAlign='left'; X.fillText('Akh '+(b.enemyIdx+1)+'/'+b.enemyTeam.length, 12, 46); }
   drawHPBoxB(LW-152,86,b.player,b.hpP,true);
   drawBattleBox();
 }
@@ -351,7 +400,8 @@ function drawBattleBox(){
   X.fillStyle='#f3ecd8'; X.font='11px Georgia'; wrapText(text, 14, by+ (menu?13:10), maxw, 13);
   if(b.phase==='msg' && b.queue.length){ const yy=by+h-10+Math.round(Math.sin(b.t*6)); X.fillStyle='#d8b24a'; X.fillRect(LW-16,yy,5,1); X.fillRect(LW-15,yy+1,3,1); X.fillRect(LW-14,yy+2,1,1); }
   if(menu){
-    const items=['Kampf','Wechsel','Fang ×'+ketaKapseln,'Flucht']; const mx=LW-150, cw=140;
+    const isTrainer=(b.type==='trainer'||b.type==='boss');
+    const items=['Kampf','Wechsel', isTrainer?'Fang: —':'Fang ×'+ketaKapseln, 'Flucht']; const mx=LW-150, cw=140;
     for(let i=0;i<4;i++){ const cy=by+3+i*9, ch=8; const sel=(i===b.menuIndex);
       px(X,mx,cy,cw,ch, sel?'#5e4d28':'#221d16'); px(X,mx,cy,cw,1, sel?'#d8b24a':'#3a342a'); if(sel) px(X,mx,cy,2,ch,'#d8b24a');
       if(sel){ X.fillStyle='#ffe9a8'; X.fillRect(mx+5,cy+2,1,4); X.fillRect(mx+6,cy+3,1,2); }

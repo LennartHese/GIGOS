@@ -1,12 +1,12 @@
 import { toast } from '../ui/toast.js';
-import { PUNISHER_IMG, drawBluePunisher, ketaKapseln } from '../main.js';
+import { PUNISHER_IMG, drawBluePunisher, ketaKapseln, akhTaler } from '../main.js';
 import { drawKeta } from './battle.js';
 
 export let invOpen=false;
 export const inventory=[];
 
 // --- Item-Sprites (prozedural, Stil wie der Rest) ---
-function drawMate(c){            // Club-Mate-Flasche (nach Don's Pixel-Vorlage)
+export function drawMate(c){            // Club-Mate-Flasche (nach Don's Pixel-Vorlage)
   c.fillStyle='rgba(20,18,10,.20)'; c.fillRect(4,46,14,3);
   // Kronkorken (Navy)
   c.fillStyle='#15366e'; c.fillRect(7,0,8,6); c.fillStyle='#2a5aa0'; c.fillRect(7,0,8,2); c.fillStyle='#0e244a'; c.fillRect(7,5,8,1);
@@ -61,12 +61,25 @@ function drawZettel(c){          // „Consumption Smoothing" — Sprite nach Do
   r(15,31,5,4,'#c01818'); r(16,32,3,2,'#e23a3a'); r(16,32,2,1,'#f06060');
   r(15,33,3,1,'#8c1010'); r(20,37,1,1,'#a11414');
 }
+export function drawAkhTaler(c){          // Muenzstapel — Club-Belohnung
+  c.fillStyle='rgba(20,18,10,.20)'; c.fillRect(4,46,16,3);
+  const coin=(cy)=>{
+    c.fillStyle='#8a6a2a'; c.beginPath(); c.ellipse(12,cy+1,9,4,0,0,7); c.fill();
+    c.fillStyle='#e0b23a'; c.beginPath(); c.ellipse(12,cy,9,4,0,0,7); c.fill();
+    c.fillStyle='#f2d878'; c.beginPath(); c.ellipse(12,cy-1,6,2.4,0,0,7); c.fill();
+    c.fillStyle='#c99a2e'; c.beginPath(); c.arc(12,cy,3,0,7); c.fill();
+  };
+  coin(38); coin(30); coin(22);
+  c.fillStyle='#7a5a1e';
+  c.fillRect(10,17,1,3); c.fillRect(13,17,1,3); c.fillRect(9,19,5,2); c.fillRect(10,21,3,1);
+}
 function drawBluePunisherItem(c){ if(typeof PUNISHER_IMG!=='undefined' && PUNISHER_IMG && PUNISHER_IMG.width){ c.imageSmoothingEnabled=false; const w=PUNISHER_IMG.width,h=PUNISHER_IMG.height,s=Math.min(22/w,44/h); c.drawImage(PUNISHER_IMG,(24-w*s)/2,(50-h*s)/2,w*s,h*s); } else if(typeof drawBluePunisher==='function'){ drawBluePunisher(c,12,26,4); } }
 const ITEMS={
   keta:{name:'Keta Kapsel', draw:drawKeta},
   bluePunisher:{name:'Blue Punisher', draw:drawBluePunisherItem},
   zettel:{name:'Zettel: „Consumption Smoothing"', draw:drawZettel},
   mate:{name:'Club-Mate', draw:drawMate},
+  akhTaler:{name:'Akh-Taler', draw:drawAkhTaler},
 };
 export function addItem(id){ if(inventory.includes(id))return; inventory.push(id);
   if(invOpen) renderInv(); toast('🎒 '+ITEMS[id].name+' erhalten',2200); }
@@ -76,7 +89,7 @@ export function renderInv(){ const grid=document.getElementById('invGrid'); grid
     const slot=document.createElement('div'); slot.className='inv-slot';
     const cnv=document.createElement('canvas'); cnv.width=24; cnv.height=50; cnv.className='inv-cv';
     const cx=cnv.getContext('2d'); cx.imageSmoothingEnabled=false; it.draw(cx);
-    const nm=document.createElement('div'); nm.className='inv-name'; nm.textContent= (id==='keta')? (it.name+' ×'+ketaKapseln) : it.name;
+    const nm=document.createElement('div'); nm.className='inv-name'; nm.textContent= (id==='keta')? (it.name+' ×'+ketaKapseln) : (id==='akhTaler')? (it.name+' ×'+akhTaler) : it.name;
     slot.appendChild(cnv); slot.appendChild(nm); grid.appendChild(slot);
   }
 }

@@ -83,6 +83,7 @@ function paintCHBGround(){
   cfill(2, 1,16, MAPW-2,16);
   cfill(2, 1,20, MAPW-2,20);
   cfill(2, 14,20, 18,25);
+  cfill(2, 30,20, 31,25);   // Gehweg runter zum neuen Ausgang unten rechts (Tempelhof-Schoeneberg)
   cfill(6, 24,4, 29,8);
   cfill(7, 3,3, 8,7);
   cfill(7, 11,3, 15,6);
@@ -297,6 +298,7 @@ export function buildCHB(){
   chbLamp(8,16); chbLamp(26,16); chbLamp(30,16); chbLamp(12,9);
   chbDoors.push({x:15*TILE,y:24*TILE,w:2*TILE,h:TILE,to:'town'});
   chbDoors.push({x:32*TILE,y:17*TILE,w:2*TILE,h:2*TILE,to:'mitte'});
+  chbDoors.push({x:30*TILE,y:24*TILE,w:2*TILE,h:TILE,to:'tempelhof'});   // eigener Weg unten rechts
   cInter(31*TILE,17*TILE,2*TILE,2*TILE,'→ Mitte',['Nach Osten geht es rein nach Mitte. Fernsehturm, Alex, enge Strassen, teurer Kaffee. Und angeblich Level, die dir dein Team zerlegen.']);
   cInter(14*TILE,23*TILE,2*TILE,TILE,'→ Zehlendorf',['Der Weg zurueck nach Sueden — Richtung Zehlendorf. Ruhiger wird es da, das stimmt.']);
   chbNpcs.push(

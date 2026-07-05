@@ -6,6 +6,9 @@ import { player } from '../entities/player.js';
 import { drawChar, PAL_PLAYER } from '../entities/drawChar.js';
 import { setBanner, showBanner } from '../ui/banner.js';
 import { toast } from '../ui/toast.js';
+import { openDialog } from '../systems/dialogue.js';
+import { startBattle } from '../systems/battle.js';
+import { addItem, drawMate, drawAkhTaler } from '../systems/inventory.js';
 import { cground, PAL_STUD1, PAL_STUD2, PAL_GIRL } from './chb.js';
 import {
   MITPX, MITHPX, PAL_WAITER, PAL_HIP, PAL_CLUB1, PAL_CLUB2, PAL_CLUB3,
@@ -13,7 +16,7 @@ import {
 } from './mitte.js';
 import {
   T, lightCv, Lx, clearSitting, setEnterCool, showDistrictLoad,
-  clubcamx, clubcamy, setClubCam, setMitCam, drawPunisherHUD,
+  clubcamx, clubcamy, setClubCam, setMitCam, drawPunisherHUD, addAkhTaler,
 } from '../main.js';
 
 /* ======================================================================
@@ -226,7 +229,7 @@ export function buildClub(){
     {x:44*TILE,y:2*TILE+2,pal:PAL_WAITER,who:'Tuersteher',dir:'down',frame:0,lines:['Der Tuersteher nickt Richtung Metalltueren. »Raus geht immer.«','»Rein war schwerer, wa?«']},
     {x:46*TILE,y:2*TILE+2,pal:PAL_WAITER,who:'Tuersteher',dir:'down',frame:0,lines:['Arme verschraenkt, Blick geradeaus. Er sagt nichts.','Erst wenn der Owner faellt, gehoert dir der Laden. Nicht vorher.']},
     // Barkeeperin
-    {x:6*TILE,y:3*TILE+2,sprite:'bark',dir:'down',who:'Barkeeperin',frame:0,lines:['Sie stellt ein Bier ab, ohne hinzusehen. »Was guckst du?«','»Trinkst du, oder willst du dich mit mir messen? Spoiler: beides endet schlecht fuer dich.«','(Fightbar — bald.)']},
+    {x:6*TILE,y:3*TILE+2,sprite:'bark',dir:'down',who:'Barkeeperin',frame:0,lines:['Sie stellt ein Bier ab, ohne hinzusehen. »Was guckst du?«','»Trinkst du, oder willst du dich mit mir messen? Spoiler: beides endet schlecht fuer dich.«','»Na los. Zeig mir was deine Akhs draufhaben.«']},
     // Gnarley Gustav — Startup-Quest
     {x:16*TILE,y:7*TILE,pal:PAL_STUD2,who:'Gnarley Gustav',dir:'down',frame:0,lines:['»Yo! Gnarley Gustav. Ich mach was mit Impact.«','»Unser Startup ist quasi das Airbnb fuer Gefuehle. Introducing: synergy. This is so Berlin, honestly.«','»Als Case Study fuer self improvement, ganz ehrlich: du brauchst die Blue Punisher. Absoluter Gamechanger, next level, hat mein ganzes Mindset disrupted.«','»Frag den Typ in komplett Schwarz beim Klo. Sag, Gustav schickt dich. Scale your vibe, bro.«']},
     // Typ in Schwarz beim Klo — Dealer
@@ -301,3 +304,63 @@ export function enterClub(){ showDistrictLoad(CLUB_LOADSCREEN, ()=>{
 export function exitClub(){ G.scene='mitte'; clearSitting(); player.x=clubReturn.x; player.y=clubReturn.y; player.dir=clubReturn.dir; player.frame=0; setEnterCool(0.5);
   setMitCam(clamp(player.x+8-LW/2,0,MITPX-LW), clamp(player.y+16-LH/2,0,MITHPX-LH));
   setBanner('Mitte','High-Level-Bezirk'); showBanner(); }
+
+/* ======================================================================
+   TRAINER-KAEMPFE — Barkeeperin (Mid-Boss) + Owner (End-Boss).
+   Beide haben ein festes 3er-Team (Basis- + entwickelte Formen gemischt).
+   Sieg gegen den Owner = Club gecleart -> Ending-Screen mit Belohnungen.
+   ====================================================================== */
+const BARKEEPER_TEAM=[ {id:'mephe',level:22}, {id:'kraehe2',level:25}, {id:'squirrel3',level:28} ];
+const OWNER_TEAM=[ {id:'kobold',level:30}, {id:'krabbe2',level:35}, {id:'kraehe3',level:40} ];
+let barkeeperDefeated=false, ownerDefeated=false;
+
+function talkBarkeeper(){
+  const n=clubNpcs.find(x=>x.who==='Barkeeperin');
+  if(barkeeperDefeated){ openDialog(n.who,['Sie zwinkert dir zu. »Reibach hab ich noch nie so gerne verloren. Respekt.«']); return; }
+  openDialog(n.who, n.lines, ()=>{
+    startBattle(BARKEEPER_TEAM[0].id, BARKEEPER_TEAM[0].level, 'club', 'trainer',
+      {team:BARKEEPER_TEAM, trainerName:'Barkeeperin', onWin:barkeeperWin});
+  });
+}
+function barkeeperWin(){ barkeeperDefeated=true; toast('Respekt. Aber der Owner oben wartet noch.',2600); }
+
+function talkOwner(){
+  const n=clubNpcs.find(x=>x.who==='Owner');
+  if(ownerDefeated){ openDialog(n.who,['Er nickt dir knapp zu. »Der Laden ist deiner. Mach keinen Scheiss draus.«']); return; }
+  openDialog(n.who, n.lines, ()=>{
+    startBattle(OWNER_TEAM[0].id, OWNER_TEAM[0].level, 'club', 'boss',
+      {team:OWNER_TEAM, trainerName:'Owner', onWin:ownerWin});
+  });
+}
+function ownerWin(){
+  ownerDefeated=true;
+  addItem('mate'); addAkhTaler(50);
+  G.state='clubEnding';
+}
+export { talkOwner, talkBarkeeper };
+
+// ---------- Club-Ending-Screen ----------
+function drawRewardIcon(drawFn, cx, cy, scale){
+  X.save(); X.translate(cx-12*scale, cy-25*scale); X.scale(scale,scale); drawFn(X); X.restore();
+}
+export function clubEndingKey(k){ if(k==='e'||k===' '||k==='enter'||k==='q'||k==='backspace'||k==='escape'){ G.state='play'; } }
+export function renderClubEnding(){
+  X.fillStyle='#0c0a10'; X.fillRect(0,0,LW,LH);
+  const g=X.createRadialGradient(LW/2,LH/2-10,10,LW/2,LH/2-10,190); g.addColorStop(0,'rgba(216,178,74,0.20)'); g.addColorStop(1,'rgba(0,0,0,0)');
+  X.fillStyle=g; X.fillRect(0,0,LW,LH);
+  for(let i=0;i<26;i++){ const tw=0.5+0.5*Math.sin(T*2+i*7.3); const sx=(i*53+37)%LW, sy=(i*29+11)%LH;
+    X.fillStyle='rgba(255,236,180,'+(tw*0.55)+')'; X.fillRect(sx,sy,1,1); }
+  X.textAlign='center'; X.textBaseline='top';
+  X.fillStyle='#ffd24a'; X.font='bold 15px Georgia'; X.fillText('DER LADEN IST DEINER', LW/2, 18);
+  X.fillStyle='#e8dcc0'; X.font='9px Georgia'; X.fillText('Heideglühen ist gecleart. Der Owner ist gefallen.', LW/2, 36);
+  X.fillStyle='#cdbfa6'; X.font='8px Georgia'; X.fillText('Belohnungen', LW/2, 56);
+  const rewards=[{draw:drawMate,label:'Club-Mate ×1'},{draw:drawAkhTaler,label:'Akh-Taler ×50'}];
+  const rw=110, totalW=rewards.length*rw, x0=(LW-totalW)/2, ry=70;
+  for(let i=0;i<rewards.length;i++){ const cx=x0+i*rw+rw/2;
+    drawRewardIcon(rewards[i].draw, cx, ry, 0.85);
+    X.fillStyle='#e8dcc0'; X.font='bold 9px Georgia'; X.fillText(rewards[i].label, cx, ry+42);
+  }
+  X.fillStyle='#a89b76'; X.font='8px Georgia'; X.fillText('Beide Items landen in deinem Inventar (I).', LW/2, LH-26);
+  X.fillStyle='#cdbfa6'; X.font='8px Georgia'; X.fillText('E: weiter', LW/2, LH-13);
+  X.textAlign='left';
+}

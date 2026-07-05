@@ -90,10 +90,16 @@ export function buildCafe(){
   px(c,138,LH-12,44,12,'#2a1c12'); px(c,142,LH-9,36,9,'#6a4a30'); px(c,142,LH-9,36,2,'#8a6a44');
   px(c,146,LH-16,32,4,'#1a2126'); c.fillStyle='#cfe0e8'; c.font='6px Georgia'; c.fillText('→ raus',150,LH-22);
 
+  // Akh-Lager-Kiosk (Steh-Terminal in der Lounge-Ecke)
+  px(c,278,146,18,26,'#3a342c'); px(c,280,148,14,2,'#4a4238');
+  px(c,280,150,14,10,'#1c1c22'); px(c,281,151,12,8,'#3a7ad0'); px(c,282,152,4,1,'#bcd8f2'); px(c,282,154,8,1,'#bcd8f2'); px(c,282,156,6,1,'#bcd8f2');
+  px(c,280,160,14,4,'#2a2620'); px(c,283,164,8,7,'#241f19');
+
   // Solids
   cafeSolids.length=0;
   cafeSolids.push({x:8,y:44,w:150,h:22},{x:180,y:70,w:124,h:26},{x:212,y:104,w:46,h:16},{x:166,y:98,w:20,h:16},
-    {x:38,y:118,w:26,h:14},{x:94,y:140,w:26,h:14},{x:147,y:108,w:24,h:14},{x:117,y:112,w:24,h:14});
+    {x:38,y:118,w:26,h:14},{x:94,y:140,w:26,h:14},{x:147,y:108,w:24,h:14},{x:117,y:112,w:24,h:14},
+    {x:278,y:146,w:18,h:26});
   // NPCs
   cafeNpcs.length=0;
   cafeNpcs.push(
@@ -112,6 +118,7 @@ export function buildCafe(){
   cafeInters.length=0;
   cafeInters.push({x:188,y:90,w:108,h:6,who:'Chesterfield',
     lines:['Abgewetztes Leder, tief durchgesessen — hier verschwinden ganze Nachmittage.','Jemand hat ein Buch liegen lassen: »Der Mythos des Sisyphos«. Na klar.']});
+  cafeInters.push({x:276,y:144,w:22,h:28,who:'Akh-Lager'});
 }
 export function talkBarista(){
   const n=cafeNpcs[0]; openDialog(n.who,n.lines); toast('Flat White aufs Haus ☕',2000);

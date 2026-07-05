@@ -79,6 +79,7 @@ function paintMitteGround(){
   mfill(3, 40,8, 41,30); mfill(3, 52,18, 53,43); mfill(3, 58,24, 59,41);
   mfill(3, 8,24, 30,24); mfill(3, 14,38, 56,38); mfill(3, 30,16, 52,16); mfill(3, 20,44, 60,44);
   mfill(3, 36,22, 37,30); // Platz-Zufahrt
+  mfill(3, 53,26, MITW-1,27); // Ost-Anschluss -> Friedrichshain-Kreuzberg
   // Spree (Sued-Band) + Promenade
   mfill(4, 3,47, MITW-4,50); mfill(2, 3,46, MITW-4,46);
   mfill(8, 2,44, 28,49);   // Heidegluehen — kiesig-erdiges Gelaende (SW, laenger, am Kanal)
@@ -216,6 +217,9 @@ export function buildMitte(){
   // Ausgang zurueck nach Wilmersdorf (West)
   mitDoors.push({x:0,y:30*TILE,w:24,h:2*TILE,to:'chb'});
   mInter(1*TILE,29*TILE,2*TILE,2*TILE,'→ Wilmersdorf',['Zurueck nach Westen, raus aus dem Trubel, rein nach Charlottenburg-Wilmersdorf.']);
+  // Ausgang weiter nach Friedrichshain-Kreuzberg (Ost) — der naechste grosse Schritt
+  mitDoors.push({x:MITPX-24,y:26*TILE,w:24,h:2*TILE,to:'fhxb'});
+  mInter(MITPX-28,25*TILE,28,3*TILE,'→ Friedrichshain-Kreuzberg',['Weiter Richtung Osten: Friedrichshain-Kreuzberg. Der naechste grosse Schritt.']);
   mInter(37*TILE-8,6*TILE,32,16,'Alexanderplatz',['Der Alex. Beton, Bahnen, Buden. Alle rennen, keiner weiss wohin.','Der erste Club steht schon — unten an der Spree.']);
   // NPCs — Warteschlange vorm Heidegluehen (auf der Spree-Seite) + Ambiente
   mitNpcs.push(
