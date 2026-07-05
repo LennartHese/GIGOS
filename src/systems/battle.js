@@ -72,20 +72,23 @@ function calcXP(enemyLevel, rarity, battleType, killerLevel){
   else if(diff>=5) xp=Math.floor(xp*0.65);
   return Math.max(1,xp);
 }
-// nur der Killer bekommt XP, kein Shared XP
+// Shared XP: das ganze (bewusstlose ausgenommen) Team teilt sich die Erfahrung, nicht nur der Kaempfer
 function grantBattleXP(){
   const killer=battle.player, E=battle.enemy;
-  if(killer.xp==null){ killer.xp=0; killer.xpNext=xpToNextLevel(killer.level); }
   const rarity=(GIGODEX[E.id]&&GIGODEX[E.id].rarity)||'common';
-  const gained=calcXP(E.level, rarity, battle.type||'wild', killer.level);
-  killer.xp+=gained;
-  const ups=[];
-  while(killer.level<LEVEL_CAP && killer.xp>=killer.xpNext){ killer.xp-=killer.xpNext; killer.level++; relevelStats(killer); killer.xpNext=xpToNextLevel(killer.level); ups.push(killer.level); }
-  if(killer.level>=LEVEL_CAP) killer.xp=0;
-  battle.queue.push({text:killer.name+' erhaelt '+gained+' XP!'});
-  for(const lv of ups) battle.queue.push({text:killer.name+' ist jetzt Level '+lv+'!'});
-  const evo=readyEvolution(killer);
-  if(evo){ battle.pendingEvo={mon:killer, to:evo}; }
+  const recipients=party.filter(m=>m.hp>0);
+  let killerGain=0; const ups=[];
+  for(const m of recipients){
+    if(m.xp==null){ m.xp=0; m.xpNext=xpToNextLevel(m.level); }
+    const gained=calcXP(E.level, rarity, battle.type||'wild', m.level);
+    if(m===killer) killerGain=gained;
+    m.xp+=gained;
+    while(m.level<LEVEL_CAP && m.xp>=m.xpNext){ m.xp-=m.xpNext; m.level++; relevelStats(m); m.xpNext=xpToNextLevel(m.level); ups.push(m.name+' ist jetzt Level '+m.level+'!'); }
+    if(m.level>=LEVEL_CAP) m.xp=0;
+    if(!battle.pendingEvo){ const evo=readyEvolution(m); if(evo) battle.pendingEvo={mon:m, to:evo}; }
+  }
+  battle.queue.push({text:'Dein ganzes Team erhaelt '+killerGain+' XP!'});
+  for(const line of ups) battle.queue.push({text:line});
   if(battle.enemyIdx<battle.enemyTeam.length-1){
     battle.queue.push({ text:E.name+' geht zu Boden!', then:()=>{ sendNextEnemy(); } });
   } else {

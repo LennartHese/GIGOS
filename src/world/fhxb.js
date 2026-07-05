@@ -12,6 +12,7 @@ import { startBattle } from '../systems/battle.js';
 import { addAkhTaler } from '../main.js';
 import { PAL_STUD1, PAL_STUD2, PAL_GIRL } from './chb.js';
 import { PAL_HIP, PAL_CLUB1, PAL_CLUB2, MITPX, MITHPX } from './mitte.js';
+import { drawUbahnSign, setStationReturn } from './ubahn.js';
 import {
   T, lightCv, Lx, encCool, clearSitting, grassFlash, setGrassFlash,
   fhxbcamx, fhxbcamy, setFhxbCam, setMitCam, setEnterCool,
@@ -144,6 +145,8 @@ export function buildFhxb(){
   fxTree(6,8); fxTree(20,32); fxTree(46,32); fxBigTree(8,40); fxBigTree(58,10);
   fxLamp(12,26); fxLamp(30,26); fxLamp(50,26); fxLamp(20,12); fxLamp(40,42);
   fxBench(16,32); fxBench(38,32); fxBench(6,42);
+  drawUbahnSign(fxB,96,464); fxInter(88,462,20,26,'U-Bahn',[]);
+  setStationReturn('fhxb',{x:102,y:490,dir:'down'});
   // --- Vier Club-Fassaden (Platzhalter) ---
   fxClub(28,5,16,10,'BERGHAIN','#4a4c50','#c8c8d0',
     ['Berghain. Ehemaliges Heizkraftwerk, jetzt Mythos aus Beton und Bass.',

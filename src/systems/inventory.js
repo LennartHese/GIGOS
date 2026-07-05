@@ -1,5 +1,5 @@
 import { toast } from '../ui/toast.js';
-import { PUNISHER_IMG, drawBluePunisher, ketaKapseln, akhTaler } from '../main.js';
+import { PUNISHER_IMG, drawBluePunisher, ketaKapseln, akhTaler, stock, useItem } from '../main.js';
 import { drawKeta } from './battle.js';
 
 export let invOpen=false;
@@ -32,6 +32,37 @@ export function drawMate(c){            // Club-Mate-Flasche (nach Don's Pixel-V
   // CLUB-MATE-Schrift (angedeutet)
   c.fillStyle='#1d3f7a'; c.fillRect(6,34,10,2);
   c.fillStyle='#c0392b'; c.fillRect(6,37,10,1);
+}
+export function drawZigaretten(c){       // Zigarettenschachtel
+  c.fillStyle='rgba(20,18,10,.20)'; c.fillRect(4,45,16,3);
+  c.fillStyle='#e23b2e'; c.fillRect(4,20,16,26); c.fillStyle='#f2ece0'; c.fillRect(4,20,16,10);
+  c.fillStyle='#c0392b'; c.fillRect(4,29,16,1);
+  c.fillStyle='#1a1410'; c.font='bold 5px Georgia'; c.textAlign='center'; c.fillText('BLAU',12,23); c.textAlign='left';
+  c.fillStyle='#b9302a'; c.fillRect(4,45,16,1);
+  // ein paar Stummel schauen oben raus
+  c.fillStyle='#efe6d4'; c.fillRect(7,12,2,9); c.fillRect(11,10,2,11); c.fillRect(15,13,2,8);
+  c.fillStyle='#c0392b'; c.fillRect(7,12,2,2); c.fillRect(11,10,2,2); c.fillRect(15,13,2,2);
+}
+export function drawWein(c){             // Weinflasche
+  c.fillStyle='rgba(20,18,10,.20)'; c.fillRect(6,46,12,3);
+  c.fillStyle='#241a30'; c.fillRect(10,2,4,10);
+  c.fillStyle='#3a2a1a'; c.fillRect(9,11,6,2);
+  c.fillStyle='#2e2038'; c.fillRect(7,13,10,33); c.fillStyle='#40304e'; c.fillRect(7,13,3,33);
+  c.fillStyle='#efe3c4'; c.fillRect(8,26,8,12); c.fillStyle='#4a3018'; c.font='5px Georgia'; c.textAlign='center'; c.fillText('WEIN',12,30); c.textAlign='left';
+}
+export function drawSekt(c){             // Sektflasche (Goldfolie)
+  c.fillStyle='rgba(20,18,10,.20)'; c.fillRect(6,46,12,3);
+  c.fillStyle='#caa23a'; c.fillRect(9,2,6,9); c.fillStyle='#e0bb55'; c.fillRect(9,2,2,9);
+  c.fillStyle='#0f4a30'; c.fillRect(9,11,6,3);
+  c.fillStyle='#123d28'; c.fillRect(7,14,10,32); c.fillStyle='#1c5238'; c.fillRect(7,14,3,32);
+  c.fillStyle='#efe3c4'; c.fillRect(8,27,8,11); c.fillStyle='#8a6a1e'; c.font='5px Georgia'; c.textAlign='center'; c.fillText('SEKT',12,31); c.textAlign='left';
+}
+export function drawSterni(c){           // Sterni-Bierflasche
+  c.fillStyle='rgba(20,18,10,.20)'; c.fillRect(5,46,14,3);
+  c.fillStyle='#15366e'; c.fillRect(9,1,6,5);
+  c.fillStyle='#3a6a3a'; c.fillRect(8,6,8,10);
+  c.fillStyle='#2e5a2e'; c.fillRect(6,16,12,29); c.fillStyle='#3e7a3e'; c.fillRect(6,16,3,29);
+  c.fillStyle='#efe3c4'; c.fillRect(6,26,12,12); c.fillStyle='#1f5fae'; c.font='bold 4px Georgia'; c.textAlign='center'; c.fillText('STERNI',12,31); c.textAlign='left';
 }
 function drawZettel(c){          // „Consumption Smoothing" — Sprite nach Don's Vorlage
   const r=(x,y,w,h,col)=>{ c.fillStyle=col; c.fillRect(x,y,w,h); };
@@ -78,9 +109,14 @@ const ITEMS={
   keta:{name:'Keta Kapsel', draw:drawKeta},
   bluePunisher:{name:'Blue Punisher', draw:drawBluePunisherItem},
   zettel:{name:'Zettel: „Consumption Smoothing"', draw:drawZettel},
-  mate:{name:'Club-Mate', draw:drawMate},
+  mate:{name:'Club-Mate', draw:drawMate, use:true, useHint:'antippen zum trinken (+Tempo, 5 Min)'},
+  zigaretten:{name:'Zigaretten', draw:drawZigaretten, use:true, useHint:'antippen zum rauchen (Team +10% HP)'},
+  wein:{name:'Wein', draw:drawWein, use:true, useHint:'antippen zum trinken'},
+  sekt:{name:'Sekt', draw:drawSekt, use:true, useHint:'antippen zum trinken'},
+  sterni:{name:'Sterni', draw:drawSterni, use:true, useHint:'antippen zum trinken'},
   akhTaler:{name:'Akh-Taler', draw:drawAkhTaler},
 };
+function countFor(id){ if(id==='keta') return ketaKapseln; if(id==='akhTaler') return akhTaler; if(id in stock) return stock[id]; return null; }
 export function addItem(id){ if(inventory.includes(id))return; inventory.push(id);
   if(invOpen) renderInv(); toast('🎒 '+ITEMS[id].name+' erhalten',2200); }
 export function renderInv(){ const grid=document.getElementById('invGrid'); grid.innerHTML='';
@@ -89,7 +125,10 @@ export function renderInv(){ const grid=document.getElementById('invGrid'); grid
     const slot=document.createElement('div'); slot.className='inv-slot';
     const cnv=document.createElement('canvas'); cnv.width=24; cnv.height=50; cnv.className='inv-cv';
     const cx=cnv.getContext('2d'); cx.imageSmoothingEnabled=false; it.draw(cx);
-    const nm=document.createElement('div'); nm.className='inv-name'; nm.textContent= (id==='keta')? (it.name+' ×'+ketaKapseln) : (id==='akhTaler')? (it.name+' ×'+akhTaler) : it.name;
+    const nm=document.createElement('div'); nm.className='inv-name';
+    const cnt=countFor(id);
+    nm.textContent = cnt!=null ? (it.name+' ×'+cnt) : it.name;
+    if(it.use){ slot.style.cursor='pointer'; slot.title=it.useHint||''; slot.addEventListener('click',(e)=>{ e.preventDefault(); useItem(id); }); }
     slot.appendChild(cnv); slot.appendChild(nm); grid.appendChild(slot);
   }
 }

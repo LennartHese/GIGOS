@@ -27,7 +27,7 @@ export const C={
   trunk:'#6b4a30', trunkHi:'#825c3c', trunkLo:'#4e3522',
   leaf:['#4f7d39','#447031','#5b8d40','#3c6029'], leafHi:'#74a64e', leafGap:'#caa86e',
   ink:'#241c14', white:'#f4ecd6',
-  enamel:'#0a4ea0', sbahnGreen:'#1f7a3a', sbahnYellow:'#f4c318',
+  enamel:'#0a4ea0', sbahnGreen:'#1f7a3a', sbahnYellow:'#f4c318', ubahnBlue:'#0d4d92',
   lamp:'#3a3640', lampGlow:'#ffdca0',
   skinA:'#e8c39a', skinB:'#c89070',
 };

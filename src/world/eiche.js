@@ -14,7 +14,7 @@ import { drawMonAt } from '../systems/dex.js';
 import { makeGigo, kapselAt, caughtRacoon } from '../systems/battle.js';
 import {
   T, lightCv, Lx, setEnterCool, party, dexSeen, dexCaught,
-  hasLeo, setHasLeo, ketaKapseln, setKetaKapseln,
+  hasLeo, setHasLeo, ketaKapseln, setKetaKapseln, addAkhTaler,
 } from '../main.js';
 import { cat } from './town.js';
 
@@ -114,8 +114,8 @@ export function exitEiche(){ G.scene='town'; player.x=eicheReturn.x; player.y=ei
 
 function giveLeo(){ setHasLeo(true); cat.x=eicheReturn.x-4; cat.y=eicheReturn.y+12; cat.dir='up';
   if(!party.length) party.push(makeGigo('leo',5));
-  setKetaKapseln(Math.max(ketaKapseln,5)); addItem('keta');
-  toast('Leo schließt sich dir an — plus 5 Keta Kapseln. Bring Leo unversehrt zurück!',3200); }
+  setKetaKapseln(Math.max(ketaKapseln,5)); addItem('keta'); addAkhTaler(15);
+  toast('Leo schließt sich dir an — plus 5 Keta Kapseln und 15 Akh-Taler. Bring Leo unversehrt zurück!',3200); }
 
 export function talkSoeren(){
   if(starterChosen){ soerenTeaser(); return; }
@@ -302,9 +302,9 @@ export function getStarterPick(){ return starterPick; }
 export function grantStarter(id){
   for(let i=party.length-1;i>=0;i--) if(party[i].id==='leo') party.splice(i,1);   // Leo zurück
   party.push(makeGigo(id,5)); setHasLeo(false); starterChosen=id; starterMons=null; reveal=null;
-  dexSeen.add(id); dexCaught.add(id);
+  dexSeen.add(id); dexCaught.add(id); addAkhTaler(30);
   const nm=GIGODEX[id].name; G.state='play';
-  toast('🧪 '+nm+' schließt sich deinem Team an!',2800);
+  toast('🧪 '+nm+' schließt sich deinem Team an! (+30 Akh-Taler)',2800);
   openDialog('Sören',[
     {w:'Sören',t:'Eine ausgezeichnete Wahl, mein Sohn. '+nm+' wird dir treu zur Seite stehen.'},
     {w:'Sören',t:'*nimmt Leo an sich* Und Leo bleibt bei mir. Er hat seinen Dienst getan — HIHIHAA.'},

@@ -10,7 +10,7 @@ import { G } from './core/state.js';
 import { GIGODEX } from './data/gigodex.js';
 import { STARTERS } from './data/starters.js';
 import { keys } from './core/input.js';
-import { player, movePlayer, facingTo, frontPoint } from './entities/player.js';
+import { player, movePlayer, facingTo, frontPoint, BASE_SPEED } from './entities/player.js';
 import { showBanner } from './ui/banner.js';
 import { toast } from './ui/toast.js';
 import { openDialog, advanceDialog, choiceState, closeChoice, openChoice, moveChoice, pickChoice } from './systems/dialogue.js';
@@ -19,6 +19,7 @@ import { DEX_PAGES, dexPage, dexGridGeom, drawBerlinodexIcon, renderDexEntry, op
 import { openTeam, closeTeam, teamKey, catchChoose, catchKey, renderTeam, renderCatchChoice, openStorage, closeStorage, storageKey, renderStorage } from './systems/party.js';
 import { updateEvolve, evolveKey, renderEvolve } from './systems/evolution.js';
 import { battleKey, renderBattle, updateBattle } from './systems/battle.js';
+import { shopKey, renderShop } from './systems/shop.js';
 import { blockedEfes, buildEfes, enterEfes, exitEfes, talkDoener, renderEfes, tickHealFx } from './world/efes.js';
 import { buildCafe, talkBarista, enterCafe, exitCafe, blockedCafe, renderCafe, cafeNpcs, cafeInters } from './world/cafe.js';
 import { buildWohnung, enterWohnung, exitWohnung, blockedWohnung, renderWohnung, wohnungNpcs, wohnungInters } from './world/wohnung.js';
@@ -57,6 +58,12 @@ import {
   doors, inters, npcs, cat, raven, buildWorld, blockedTown, checkEncounterTown, renderTown,
   setLastTile,
 } from './world/town.js';
+import {
+  ride, blockedUbahn, buildUbahn, renderUbahn, updateUbahn, openUbahnMenu,
+} from './world/ubahn.js';
+import {
+  blockedSpaeti, buildSpaeti, enterSpaeti, exitSpaeti, talkKiosk, renderSpaeti,
+} from './world/spaeti.js';
 
 const LOADSCREEN="assets/images/loadscreen.jpg";
 
@@ -169,6 +176,7 @@ function onKey(k){
   if(k==='p' && inventory.includes('bluePunisher') && (G.state==='play'||G.state==='battle')){ popPunisher(); return; }
   if(G.state==='team'){ teamKey(k); return; }
   if(G.state==='storage'){ storageKey(k); return; }
+  if(G.state==='shop'){ shopKey(k); return; }
   if(G.state==='catchChoice'){ catchKey(k); return; }
   if(G.state==='evolve'){ evolveKey(k); return; }
   if(G.state==='cutscene'||G.state==='reveal') return;
@@ -218,29 +226,39 @@ function tryInteract(){
     openDialog('Obergeschoss',['Sörens Geheimkammer. Überall Schriften, Bücher, Notizen. Unter Glaskuppeln ruhen drei Kapseln.']);
     return;
   }
+  if(G.scene==='ubahn'){
+    if(ride) for(const p of ride.passengers){ if(Math.abs(p.x+8-fx)<12 && Math.abs(p.y+16-fy)<14){ chatNPC(p.who,p.lines); return; } }
+    return;
+  }
+  if(G.scene==='spaeti'){
+    if(fy<108 && player.x+8>110 && player.x+8<210){ talkKiosk(); return; }
+    if(player.y>=132 && Math.abs(player.x+8-160)<26){ exitSpaeti(); return; }
+    openDialog('Späti',['Regale voller Getränke, Zigaretten, ein Kühlschrank, der ewig brummt. Typischer Spätkauf-Duft: Kaffee, Reinigungsmittel, ein Hauch Bier.']);
+    return;
+  }
   if(G.scene==='cafe'){
     if(player.dir==='up' && player.y<92 && player.x+8>30 && player.x+8<150){ talkBarista(); return; }
     if(player.y>=150 && Math.abs(player.x+8-160)<22){ exitCafe(); return; }
-    for(const n of cafeNpcs){ if(n.counter) continue; if(Math.abs(n.x+8-fx)<13 && Math.abs(n.y+16-fy)<15){ n.dir=(player.x<n.x?'left':'right'); openDialog(n.who,n.lines); return; } }
+    for(const n of cafeNpcs){ if(n.counter) continue; if(Math.abs(n.x+8-fx)<13 && Math.abs(n.y+16-fy)<15){ n.dir=(player.x<n.x?'left':'right'); chatNPC(n.who,n.lines); return; } }
     for(const it of cafeInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){
       if(it.who==='Akh-Lager'){ toast('Der Kiosk-Bildschirm blinkt. "Willkommen im Akh-Lager."',2400); openStorage(); } else { openDialog(it.who,it.lines); } return; } }
     return;
   }
   if(G.scene==='wohnung'){
     if(player.y>=282 && Math.abs(player.x+8-160)<24){ exitWohnung(); return; }
-    for(const n of wohnungNpcs){ if(Math.abs(n.x+8-fx)<14 && Math.abs(n.y+16-fy)<16){ openDialog(n.who,n.lines); return; } }
+    for(const n of wohnungNpcs){ if(Math.abs(n.x+8-fx)<14 && Math.abs(n.y+16-fy)<16){ chatNPC(n.who,n.lines); return; } }
     for(const it of wohnungInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ openDialog(it.who,it.lines); return; } }
     return;
   }
   if(G.scene==='chb'){
-    for(const d of chbDoors){ if(fx>=d.x-2&&fx<=d.x+d.w+2&&fy>=d.y-2&&fy<=d.y+d.h+2){ if(d.to==='town') exitCHB(); else if(d.to==='cafe') enterCafe(); else if(d.to==='wohnung') enterWohnung(); else if(d.to==='mitte') enterMitte(); else if(d.to==='tempelhof') enterTempelhof(); return; } }
-    for(const n of chbNpcs){ if(Math.abs(n.x+8-fx)<12 && Math.abs(n.y+16-fy)<14){ n.dir=(player.x<n.x?'left':'right'); openDialog(n.who,n.lines); return; } }
-    for(const it of chbInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ if(it.who==='Bank'){ sitDown(it); } else { openDialog(it.who,it.lines); } return; } }
+    for(const d of chbDoors){ if(fx>=d.x-2&&fx<=d.x+d.w+2&&fy>=d.y-2&&fy<=d.y+d.h+2){ if(d.to==='town') exitCHB(); else if(d.to==='cafe') enterCafe(); else if(d.to==='wohnung') enterWohnung(); else if(d.to==='mitte') enterMitte(); else if(d.to==='tempelhof') enterTempelhof(); else if(d.to==='spaeti') enterSpaeti('chb'); return; } }
+    for(const n of chbNpcs){ if(Math.abs(n.x+8-fx)<12 && Math.abs(n.y+16-fy)<14){ n.dir=(player.x<n.x?'left':'right'); if(n.talk){ n.talk(); } else { chatNPC(n.who,n.lines); } return; } }
+    for(const it of chbInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ if(it.who==='Bank'){ sitDown(it); } else if(it.who==='U-Bahn'){ openUbahnMenu('chb'); } else { openDialog(it.who,it.lines); } return; } }
     return;
   }
   if(G.scene==='kl'){
     for(const d of klDoors){ if(fx>=d.x-2&&fx<=d.x+d.w+2&&fy>=d.y-2&&fy<=d.y+d.h+2){ if(d.to==='town') exitKL(); return; } }
-    for(const it of klInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ if(it.who==='Sprungbaum'){ startKLJump(); } else { openDialog(it.who,it.lines); } return; } }
+    for(const it of klInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ if(it.who==='Sprungbaum'){ startKLJump(); } else if(it.who==='U-Bahn'){ openUbahnMenu('kl'); } else { openDialog(it.who,it.lines); } return; } }
     return;
   }
   if(G.scene==='club'){
@@ -250,35 +268,36 @@ function tryInteract(){
       else if(n.who==='Dealer'){ dealerTalk(); }
       else if(n.who==='Owner'){ talkOwner(); }
       else if(n.who==='Barkeeperin'){ talkBarkeeper(); }
-      else openDialog(n.who,n.lines); return; } }
+      else if(n.talk){ n.talk(); }
+      else chatNPC(n.who,n.lines); return; } }
     for(const it of clubInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ if(it.who==='Karussell'){ sitDown(it); } else { openDialog(it.who,it.lines); } return; } }
     return;
   }
   if(G.scene==='mitte'){
     for(const d of mitDoors){ if(fx>=d.x-2&&fx<=d.x+d.w+2&&fy>=d.y-2&&fy<=d.y+d.h+2){ if(d.to==='chb') exitMitte(); else if(d.to==='fhxb') enterFhxb(); else if(d.to==='club'){ if(clubUnlocked) enterClub(); else gateStart(); } return; } }
-    for(const n of mitNpcs){ if(Math.abs(n.x+8-fx)<12 && Math.abs(n.y+16-fy)<14){ n.dir=(player.x<n.x?'left':'right'); if(n.who==='Tuersteherin'){ gateStart(); } else openDialog(n.who,n.lines); return; } }
-    for(const it of mitInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ openDialog(it.who,it.lines); return; } }
+    for(const n of mitNpcs){ if(Math.abs(n.x+8-fx)<12 && Math.abs(n.y+16-fy)<14){ n.dir=(player.x<n.x?'left':'right'); if(n.who==='Tuersteherin'){ gateStart(); } else if(n.talk){ n.talk(); } else { chatNPC(n.who,n.lines); } return; } }
+    for(const it of mitInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ if(it.who==='U-Bahn'){ openUbahnMenu('mitte'); } else { openDialog(it.who,it.lines); } return; } }
     return;
   }
   if(G.scene==='fhxb'){
     for(const d of fxDoors){ if(fx>=d.x-2&&fx<=d.x+d.w+2&&fy>=d.y-2&&fy<=d.y+d.h+2){ if(d.to==='mitte') exitFhxb(); return; } }
     for(const n of fxNpcs){ if(Math.abs(n.x+8-fx)<13 && Math.abs(n.y+16-fy)<16){ n.dir=(player.x<n.x?'left':'right');
-      if(n.who==='Ayahuasca Anja'){ talkAnja(); } else openDialog(n.who,n.lines); return; } }
-    for(const it of fxInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ openDialog(it.who,it.lines); return; } }
+      if(n.who==='Ayahuasca Anja'){ talkAnja(); } else chatNPC(n.who,n.lines); return; } }
+    for(const it of fxInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ if(it.who==='U-Bahn'){ openUbahnMenu('fhxb'); } else { openDialog(it.who,it.lines); } return; } }
     return;
   }
   if(G.scene==='tempelhof'){
-    for(const d of tpDoors){ if(fx>=d.x-2&&fx<=d.x+d.w+2&&fy>=d.y-2&&fy<=d.y+d.h+2){ if(d.to==='chb') exitTempelhof(); return; } }
+    for(const d of tpDoors){ if(fx>=d.x-2&&fx<=d.x+d.w+2&&fy>=d.y-2&&fy<=d.y+d.h+2){ if(d.to==='chb') exitTempelhof(); else if(d.to==='spaeti') enterSpaeti('tempelhof'); return; } }
     for(const n of tpNpcs){ if(Math.abs(n.x+8-fx)<13 && Math.abs(n.y+16-fy)<16){ n.dir=(player.x<n.x?'left':'right');
-      if(n.who==='Bierball-Gastgeber'){ openDialog(n.who,n.lines,()=>openBierball()); } else openDialog(n.who,n.lines); return; } }
-    for(const it of tpInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ openDialog(it.who,it.lines); return; } }
+      if(n.who==='Bierball-Gastgeber'){ openDialog(n.who,n.lines,()=>openBierball()); } else chatNPC(n.who,n.lines); return; } }
+    for(const it of tpInters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ if(it.who==='U-Bahn'){ openUbahnMenu('tempelhof'); } else { openDialog(it.who,it.lines); } return; } }
     return;
   }
   // --- Stadt ---
-  for(const d of doors){ if(fx>=d.x-2&&fx<=d.x+d.w+2&&fy>=d.y-2&&fy<=d.y+d.h+2){ if(d.to==='efes') enterEfes(); else if(d.to==='eiche') enterEiche(); else if(d.to==='chb') enterCHB(); else if(d.to==='kl') enterKL(); return; } }
-  for(const n of npcs){ if(Math.abs(n.x+8-fx)<12 && Math.abs(n.y+16-fy)<14){ if(n.talk){ n.talk(); } else { n.dir=facingTo(n,player); openDialog(n.who,n.lines); } return; } }
+  for(const d of doors){ if(fx>=d.x-2&&fx<=d.x+d.w+2&&fy>=d.y-2&&fy<=d.y+d.h+2){ if(d.to==='efes') enterEfes(); else if(d.to==='eiche') enterEiche(); else if(d.to==='chb') enterCHB(); else if(d.to==='kl') enterKL(); else if(d.to==='spaeti') enterSpaeti('town'); return; } }
+  for(const n of npcs){ if(Math.abs(n.x+8-fx)<12 && Math.abs(n.y+16-fy)<14){ if(n.talk){ n.talk(); } else { n.dir=facingTo(n,player); chatNPC(n.who,n.lines); } return; } }
   if(Math.abs(cat.x+6-fx)<12 && Math.abs(cat.y+8-fy)<12){ openDialog('Katze',['Eine kleine getigerte Katze sitzt auf der warmen Mauer und blinzelt dich langsam an. *schnurr*']); return; }
-  for(const it of inters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ openDialog(it.who,it.lines); return; } }
+  for(const it of inters){ if(fx>=it.x-2&&fx<=it.x+it.w+2&&fy>=it.y-2&&fy<=it.y+it.h+2){ if(it.who==='U-Bahn'){ openUbahnMenu('town'); } else { openDialog(it.who,it.lines); } return; } }
 }
 export let encCool=0;
 export function resetAfterBattle(){ encCool=1.5; setLastTile(-1); clastTile=-1; }
@@ -291,8 +310,10 @@ export function setGrassFlash(v){ grassFlash=v; }
 export let camx=0,camy=0; export let T=0;
 function update(dt){
   if(loveAura>0) loveAura-=dt;
+  if(mateBuffT>0){ mateBuffT-=dt; if(mateBuffT<=0){ mateBuffT=0; player.speed=BASE_SPEED; toast('Club-Mate-Wirkung lässt nach.',2000); } }
+  if(drunk>0) drunk=Math.max(0,drunk-dt);
   if(gateWalk>0){ gateWalk-=dt; player.y-=20*dt; player.step=(player.step||0)+dt*8; player.frame=1+((player.step|0)%2); T+=dt; if(gateWalk<=0){ player.frame=0; enterClub(); } return; }
-  if(G.state==='team'||G.state==='catchChoice'||G.state==='storage'||G.state==='clubEnding'){ T+=dt; return; }
+  if(G.state==='team'||G.state==='catchChoice'||G.state==='storage'||G.state==='clubEnding'||G.state==='shop'){ T+=dt; return; }
   if(G.state==='bierball'){ T+=dt; updateBierball(dt); return; }
   if(G.state==='cutscene'){ T+=dt; stepCutscene(dt); return; }
   if(G.state==='reveal'){ T+=dt; stepReveal(dt); return; }
@@ -307,7 +328,7 @@ function update(dt){
     // Eingänge: reinlaufen (kurze Sperre nach dem Rausgehen)
     if(enterCool>0){ enterCool-=dt; }
     else { const fx=player.x+4, fy=player.y+15;
-      for(const d of doors){ if(fx<d.x+d.w&&fx+8>d.x&&fy<d.y+d.h&&fy+6>d.y){ if(d.to==='efes'){ enterEfes(); break; } else if(d.to==='eiche'){ enterEiche(); break; } else if(d.to==='chb'){ enterCHB(); break; } else if(d.to==='kl'){ enterKL(); break; } } }
+      for(const d of doors){ if(fx<d.x+d.w&&fx+8>d.x&&fy<d.y+d.h&&fy+6>d.y){ if(d.to==='efes'){ enterEfes(); break; } else if(d.to==='eiche'){ enterEiche(); break; } else if(d.to==='chb'){ enterCHB(); break; } else if(d.to==='kl'){ enterKL(); break; } else if(d.to==='spaeti'){ enterSpaeti('town'); break; } } }
     }
     if(encCool>0) encCool-=dt;
     checkEncounterTown();
@@ -338,7 +359,7 @@ function update(dt){
       movePlayer(dt,blockedCHB);
       if(enterCool>0){ enterCool-=dt; }
       else { const fx=player.x+4, fy=player.y+15;
-        for(const d of chbDoors){ if(fx<d.x+d.w&&fx+8>d.x&&fy<d.y+d.h&&fy+6>d.y){ if(d.to==='town'){ exitCHB(); break; } else if(d.to==='cafe'){ enterCafe(); break; } else if(d.to==='wohnung'){ enterWohnung(); break; } else if(d.to==='mitte'){ enterMitte(); break; } else if(d.to==='tempelhof'){ enterTempelhof(); break; } } } }
+        for(const d of chbDoors){ if(fx<d.x+d.w&&fx+8>d.x&&fy<d.y+d.h&&fy+6>d.y){ if(d.to==='town'){ exitCHB(); break; } else if(d.to==='cafe'){ enterCafe(); break; } else if(d.to==='wohnung'){ enterWohnung(); break; } else if(d.to==='mitte'){ enterMitte(); break; } else if(d.to==='tempelhof'){ enterTempelhof(); break; } else if(d.to==='spaeti'){ enterSpaeti('chb'); break; } } } }
       if(encCool>0) encCool-=dt;
       checkEncounterCHB();
     }
@@ -374,10 +395,16 @@ function update(dt){
     movePlayer(dt,blockedTempelhof);
     if(enterCool>0){ enterCool-=dt; }
     else { const fx=player.x+4, fy=player.y+15;
-      for(const d of tpDoors){ if(fx<d.x+d.w&&fx+8>d.x&&fy<d.y+d.h&&fy+6>d.y){ if(d.to==='chb'){ exitTempelhof(); break; } } } }
+      for(const d of tpDoors){ if(fx<d.x+d.w&&fx+8>d.x&&fy<d.y+d.h&&fy+6>d.y){ if(d.to==='chb'){ exitTempelhof(); break; } else if(d.to==='spaeti'){ enterSpaeti('tempelhof'); break; } } } }
     if(encCool>0) encCool-=dt;
     checkEncounterTempelhof();
     tpcamx=clamp(player.x+8-LW/2,0,TFPX-LW); tpcamy=clamp(player.y+16-LH/2,0,TFHPX-LH);
+  } else if(G.state==='play' && G.scene==='ubahn'){
+    movePlayer(dt,blockedUbahn);
+    updateUbahn(dt);
+  } else if(G.state==='play' && G.scene==='spaeti'){
+    movePlayer(dt,blockedSpaeti);
+    if(player.y>=132 && Math.abs(player.x+8-160)<26){ exitSpaeti(); }
   } else if(G.state==='play' && G.scene==='club'){
     if(sitting){
       if(keys['w']||keys['a']||keys['s']||keys['d']||keys['arrowup']||keys['arrowdown']||keys['arrowleft']||keys['arrowright']) standUp();
@@ -428,12 +455,13 @@ function setDexRes(on){
   if(on){ if(cv.width!==LW*DEXK){ cv.width=LW*DEXK; cv.height=LH*DEXK; } X.setTransform(DEXK,0,0,DEXK,0,0); X.imageSmoothingEnabled=true; cv.style.imageRendering='auto'; }
   else { if(cv.width!==LW){ cv.width=LW; cv.height=LH; } X.setTransform(1,0,0,1,0,0); X.imageSmoothingEnabled=false; cv.style.imageRendering='pixelated'; }
 }
-function render(){ _render(); if(loveAura>0 && (G.state==='battle'||G.state==='play')) drawLoveAura(); }
+function render(){ _render(); if(G.state==='play') drawAkhTalerHUD(); if(loveAura>0 && (G.state==='battle'||G.state==='play')) drawLoveAura(); }
 function _render(){
   if(G.state==='dex'||G.state==='dexEntry'){ setDexRes(true); if(G.state==='dex') renderDex(); else renderDexEntry(); return; }
   setDexRes(false);
   if(G.state==='team'){ renderTeam(); return; }
   if(G.state==='storage'){ renderStorage(); return; }
+  if(G.state==='shop'){ renderShop(); return; }
   if(G.state==='catchChoice'){ renderCatchChoice(); return; }
   if(G.state==='evolve'){ renderEvolve(); return; }
   if(G.state==='clubEnding'){ renderClubEnding(); return; }
@@ -456,6 +484,8 @@ function _render(){
   if(G.scene==='club'){ renderClub(); return; }
   if(G.scene==='fhxb'){ renderFhxb(); return; }
   if(G.scene==='tempelhof'){ renderTempelhof(); return; }
+  if(G.scene==='ubahn'){ renderUbahn(); return; }
+  if(G.scene==='spaeti'){ renderSpaeti(); return; }
   renderTown();
 }
 
@@ -506,6 +536,44 @@ export function useKetaKapsel(){ ketaKapseln--; }
 export function setKetaKapseln(v){ ketaKapseln=v; }
 export let akhTaler = 0;               // Club-Waehrung, Belohnung fuer den Owner-Sieg
 export function addAkhTaler(n){ akhTaler=Math.max(0,akhTaler+n); }
+
+/* ======================================================================
+   SPÄTI-WAREN — Club-Mate/Zigaretten/Wein/Sekt/Sterni, gekauft fuer Akh-Taler.
+   Keta Kapseln laufen weiter ueber ketaKapseln/setKetaKapseln.
+   ====================================================================== */
+export const stock={ mate:0, zigaretten:0, wein:0, sekt:0, sterni:0 };
+export let drunk=0;                    // >0 = beschwipst, faerbt manche Dialoge
+let mateBuffT=0;                        // Restzeit des Club-Mate-Tempo-Buffs
+export function useItem(id){
+  if(id==='mate'){ if(stock.mate<=0) return; stock.mate--; player.speed=BASE_SPEED*1.35; mateBuffT=300;
+    toast('☕ Club-Mate! Für 5 Minuten läufst du etwas schneller.',2400);
+  } else if(id==='zigaretten'){ if(stock.zigaretten<=0) return; stock.zigaretten--;
+    for(const m of party) m.hp=Math.min(m.maxHP, m.hp+Math.round(m.maxHP*0.10));
+    toast('🚬 Zigarette geraucht — dein Team heilt sich um 10% HP.',2400);
+  } else if(id==='wein'||id==='sekt'||id==='sterni'){ if(stock[id]<=0) return; stock[id]--; drunk=Math.min(240,drunk+70);
+    const nm = id==='wein'?'Wein':id==='sekt'?'Sekt':'Sterni';
+    toast('🍷 '+nm+' getrunken. Du fühlst dich... beschwingt.',2400);
+  } else return;
+  if(invOpen) renderInv();
+}
+export function chatNPC(who,lines){
+  if(Math.random()<0.05){ const n=3+((Math.random()*5)|0); addAkhTaler(n);
+    openDialog(who,[...lines,'Ach, hier weisste wat, nimm ein paar Taler.']);
+    toast('🪙 +'+n+' Akh-Taler',2000);
+  } else openDialog(who,lines);
+}
+function drawCoinIcon(c,cx,cy){
+  c.fillStyle='#8a6a2a'; c.beginPath(); c.ellipse(cx,cy+1,5,4,0,0,7); c.fill();
+  c.fillStyle='#e0b23a'; c.beginPath(); c.ellipse(cx,cy,5,4,0,0,7); c.fill();
+  c.fillStyle='#f2d878'; c.beginPath(); c.ellipse(cx,cy-1,3,2.4,0,0,7); c.fill();
+}
+export function drawAkhTalerHUD(){
+  const w=54,h=14,x=LW-w-4,y=4;
+  X.fillStyle='rgba(20,14,8,.55)'; X.fillRect(x,y,w,h); X.fillStyle='rgba(255,255,255,.12)'; X.fillRect(x,y,w,1);
+  drawCoinIcon(X,x+9,y+7);
+  X.fillStyle='#f3ecd8'; X.font='bold 9px Georgia'; X.textAlign='left'; X.textBaseline='middle'; X.fillText(''+akhTaler, x+17, y+8);
+  X.textAlign='left'; X.textBaseline='alphabetic';
+}
 export function relevelStats(m){ const b=GIGODEX[m.id]; const f=(s)=>Math.max(1,Math.round(s*(1+0.10*(m.level-1))));
   const oldMax=m.maxHP; const newMax=Math.round(b.hp*(1+0.12*(m.level-1)))+5;
   m.maxHP=newMax; m.hp=Math.min(newMax, Math.max(1,m.hp)+(newMax-oldMax)); m.atk=f(b.atk); m.def=f(b.def); m.spd=f(b.spd); }
@@ -533,8 +601,8 @@ function popPunisher(){ const i=inventory.indexOf('bluePunisher'); if(i<0) retur
   toast('Blue Punisher gepoppt \u2014 Aura of Love, Peace & Harmony. Dein Team: +80% ATK!',3600); }
 function dealerTalk(){
   if(!questGustav){ openDialog('Typ in Schwarz',['Ein Typ in komplett Schwarz, Kapuze tief im Gesicht. Er mustert dich. \u00bb...\u00ab','Er sagt nichts. Noch kennt er dich nicht.']); return; }
-  if(!gotPunisher){ gotPunisher=true; addItem('bluePunisher');
-    openDialog('Typ in Schwarz',['\u00bbGustav schickt dich? ...Aight.\u00ab','Er drueckt dir eine kleine blaue Raute mit Totenkopf in die Hand \u2014 Blue Punisher.','\u00bbEin Teil. Wirf sie ein wenn du bereit bist: druck P. Danach ist alles Liebe \u2014 und dein Team haut +80% zu. Nur so kriegst du den Owner klein.\u00ab']); return; }
+  if(!gotPunisher){ gotPunisher=true; addItem('bluePunisher'); addAkhTaler(15);
+    openDialog('Typ in Schwarz',['\u00bbGustav schickt dich? ...Aight.\u00ab','Er drueckt dir eine kleine blaue Raute mit Totenkopf in die Hand \u2014 Blue Punisher.','\u00bbEin Teil. Wirf sie ein wenn du bereit bist: druck P. Danach ist alles Liebe \u2014 und dein Team haut +80% zu. Nur so kriegst du den Owner klein.\u00ab','\u00bbHier, noch 15 Akh-Taler obendrauf. Gustav sagt, du sollst dir wat goennen.\u00ab']); return; }
   openDialog('Typ in Schwarz',['\u00bbHaste doch schon. Immer mit der Ruhe, ja?\u00ab','\u00bbEinwerfen mit P. Wenn du bereit bist.\u00ab']); }
 export function drawBluePunisher(c,cx,cy,s){ c.fillStyle='#2b6fd0'; c.beginPath(); c.moveTo(cx,cy-2*s); c.lineTo(cx+2.6*s,cy-0.4*s); c.lineTo(cx,cy+2*s); c.lineTo(cx-2.6*s,cy-0.4*s); c.closePath(); c.fill();
   c.fillStyle='#5a9ce8'; c.fillRect(cx-1,(cy-2*s+1)|0,2,1); c.fillStyle='#cfe4fa'; c.fillRect(cx-1,cy-1,2,2); c.fillStyle='#2b6fd0'; c.fillRect(cx-1,cy,1,1); c.fillRect(cx,cy,1,1); }
@@ -554,6 +622,8 @@ buildMitte();
 buildClub();
 buildFhxb();
 buildTempelhof();
+buildUbahn();
+buildSpaeti();
 document.getElementById('loadImg').src=LOADSCREEN;
 
 let last=performance.now();

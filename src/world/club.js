@@ -322,7 +322,7 @@ function talkBarkeeper(){
       {team:BARKEEPER_TEAM, trainerName:'Barkeeperin', onWin:barkeeperWin});
   });
 }
-function barkeeperWin(){ barkeeperDefeated=true; toast('Respekt. Aber der Owner oben wartet noch.',2600); }
+function barkeeperWin(){ barkeeperDefeated=true; addAkhTaler(25); toast('Respekt. Aber der Owner oben wartet noch. (+25 Akh-Taler)',2600); }
 
 function talkOwner(){
   const n=clubNpcs.find(x=>x.who==='Owner');

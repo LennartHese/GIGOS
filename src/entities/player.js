@@ -1,7 +1,8 @@
 import { TILE } from '../core/constants.js';
 import { keys } from '../core/input.js';
 
-export const player={x:16*TILE, y:11*TILE, dir:'down', frame:0, step:0, speed:54};
+export const BASE_SPEED=54;
+export const player={x:16*TILE, y:11*TILE, dir:'down', frame:0, step:0, speed:BASE_SPEED};
 
 export function movePlayer(dt,blockFn){
   let dx=0,dy=0;

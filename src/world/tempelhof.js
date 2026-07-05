@@ -11,6 +11,8 @@ import { rollWild } from '../data/encounters.js';
 import { startBattle } from '../systems/battle.js';
 import { PAL_STUD1, PAL_STUD2, PAL_GIRL } from './chb.js';
 import { PAL_HIP } from './mitte.js';
+import { drawUbahnSign, setStationReturn } from './ubahn.js';
+import { setSpaetiReturn } from './spaeti.js';
 import {
   T, lightCv, Lx, encCool, clearSitting, grassFlash, setGrassFlash,
   tpcamx, tpcamy, setTpCam, setCcam, setEnterCool,
@@ -215,6 +217,8 @@ export function buildTempelhof(){
   tpTree(6,20); tpTree(24,20); tpTree(10,34); tpBigTree(30,6); tpBigTree(70,8);
   tpLamp(12,22); tpLamp(20,22); tpLamp(28,22); tpLamp(16,10);
   tpBench(11,18); tpBench(18,18);
+  drawUbahnSign(tpB,80,368); tpInter(72,366,20,26,'U-Bahn',[]);
+  setStationReturn('tempelhof',{x:86,y:394,dir:'down'});
   // Bierball-Ecke auf dem Kirchplatz
   const bbx=13*TILE, bby=19*TILE;
   tpSolid(bbx+6,bby+10,10,8);
@@ -228,6 +232,8 @@ export function buildTempelhof(){
   tpNpcs.push({x:bbx-14,y:bby+8,dir:'right',pal:PAL_GIRL,who:'Studentin',frame:0,lines:['Kirchplatz ist der beste Vorglueh-Spot der Stadt.','Nimm die Perfect-Zone, glaub mir.']});
   // Laeden (Spaeti Wunderlampe, Café, Restaurant)
   tpShop(8,28,7,6,'SPÄTI','WUNDERLAMPE','#8a6a30','#161320','#ffd24a');
+  tpDoors.push({x:168,y:544,w:20,h:10,to:'spaeti'});
+  setSpaetiReturn('tempelhof',{x:178,y:554,dir:'down'});
   tpShop(16,28,7,6,'CAFÉ','SONNTAGSKIND','#7a4a3a','#1c1420','#ffb0a0');
   tpShop(24,28,7,6,'RESTAURANT','ZUR KIEZPERLE','#4a5a3a','#161e14','#c8e896');
   // BHZ — verstecktes Easter Egg

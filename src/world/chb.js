@@ -9,9 +9,11 @@ import { rollWild } from '../data/encounters.js';
 import { startBattle } from '../systems/battle.js';
 import { setCafeReturn } from './cafe.js';
 import { setWohnungReturn } from './wohnung.js';
+import { drawUbahnSign, setStationReturn } from './ubahn.js';
+import { setSpaetiReturn } from './spaeti.js';
 import {
   T, lightCv, Lx, encCool, sitting, grassFlash, setGrassFlash,
-  ccamx, ccamy, setCcam, clastTile, setClastTile, showDistrictLoad,
+  ccamx, ccamy, setCcam, clastTile, setClastTile, showDistrictLoad, drunk, chatNPC,
 } from '../main.js';
 
 /* ======================================================================
@@ -290,6 +292,10 @@ export function buildCHB(){
     ['Die Kaiser-Wilhelm-Gedaechtniskirche. Der »hohle Zahn« — oben abgebrochen, absichtlich nie ganz repariert. Mahnmal mitten im Trubel.',
      'Drinnen leuchtet blaues Glas. Draussen rauscht der Verkehr, als waere nichts.']);
   chbSpaeti(24,15);
+  chbDoors.push({x:405,y:281,w:16,h:10,to:'spaeti'});
+  setSpaetiReturn('chb',{x:409,y:290,dir:'down'});
+  drawUbahnSign(cB,204,184); cInter(196,182,20,26,'U-Bahn',[]);
+  setStationReturn('chb',{x:210,y:210,dir:'down'});
   // durchgehende Gruenderzeit-Zeile am oberen Strassenrand (Blockrandbebauung) — mit Durchgang
   for(let i=0;i<8;i++){ if(i===5) continue; const p=ALTBAU_PALS[i%4]; chbAltbau(i*4,0,4, i===4?Object.assign({},p,{door:true}):p); }
   chbAltbau(32,0,2, ALTBAU_PALS[1]);
@@ -303,7 +309,7 @@ export function buildCHB(){
   cInter(14*TILE,23*TILE,2*TILE,TILE,'→ Zehlendorf',['Der Weg zurueck nach Sueden — Richtung Zehlendorf. Ruhiger wird es da, das stimmt.']);
   chbNpcs.push(
     {x:25*TILE,y:5*TILE,dir:'right',pal:PAL_BOULE,who:'Boule-Olaf',play:true,t:0,frame:0,
-      lines:['Ssscht — ich konzentrier mich.','Boule ist Schach fuer Leute die lieber draussen saufen.']},
+      lines:['Ssscht — ich konzentrier mich.','Boule ist Schach fuer Leute die lieber draussen saufen.'], talk:()=>bouleOlafTalk()},
     {x:27*TILE,y:6*TILE,dir:'left',pal:PAL_CHESS,who:'Schach-Renate',play:true,t:1,frame:0,
       lines:['Matt in drei. Setz dich, wenn du verlieren willst.','Frueher hab ich am Wittenbergplatz gespielt. Da war noch Niveau.']},
     {x:26*TILE,y:7*TILE,dir:'down',pal:PAL_GIRL,who:'Frisbee-Kid',play:true,t:2,frame:0,
@@ -311,7 +317,7 @@ export function buildCHB(){
     {x:7*TILE,y:16*TILE+4,dir:'down',pal:PAL_OMA,who:'Kirchen-Oma',wander:true,base:7*TILE,t:0,frame:0,
       lines:['Der hohle Zahn, ja. Steht da seit ich denken kann.','Setz dich nicht ins hohe Gras, Kindchen. Da wohnt was.']},
     {x:30*TILE,y:4*TILE,dir:'down',pal:PAL_SNOB1,who:'Schnoesel Henning',play:true,t:0.5,frame:0,
-      lines:['Erbpacht. Drei Generationen. Man kennt sich.','Joggen? Wir haben Leute, die das fuer uns erledigen.']},
+      lines:['Erbpacht. Drei Generationen. Man kennt sich.','Joggen? Wir haben Leute, die das fuer uns erledigen.'], talk:()=>henningTalk()},
     {x:2*TILE,y:7*TILE,dir:'down',pal:PAL_SNOB2,who:'Schnoesel Constantin',play:true,t:1.5,frame:0,
       lines:['Charlottengrad, mein Bester. Hier wohnt das alte Geld.','Ein Gigo? Wie putzig. Wir haben dafuer eine Galerie.']},
     {x:5*TILE,y:15*TILE,dir:'right',pal:PAL_STUD1,who:'Mate-Student',play:true,t:0.2,frame:0,
@@ -329,6 +335,14 @@ export function buildCHB(){
     {x:18*TILE,y:10*TILE,dir:'left',pal:PAL_VICI,who:'Vici',frame:0,
       lines:['Pssst. Ich plan wat. Die andern wissens noch nich.','Sag Lennart nix, ja?']}
   );
+}
+function bouleOlafTalk(){
+  if(drunk>0){ chatNPC('Boule-Olaf',['Ah, ein Getraenk intus? Jetzt reden wir mal Boule auf Augenhoehe, Kumpel!','Setz dich, ich zeig dir den perfekten Wurf. Nach dem dritten klappt er sogar.']); return; }
+  chatNPC('Boule-Olaf',['Ssscht — ich konzentrier mich.','Boule ist Schach fuer Leute die lieber draussen saufen.']);
+}
+function henningTalk(){
+  if(drunk>0){ chatNPC('Schnoesel Henning',['Riecht hier jemand nach Discounter-Sekt? Wie... unfein.','Bitte halten Sie Abstand. Man kennt sich, aber nicht SO.']); return; }
+  chatNPC('Schnoesel Henning',['Erbpacht. Drei Generationen. Man kennt sich.','Joggen? Wir haben Leute, die das fuer uns erledigen.']);
 }
 
 export function blockedCHB(nx,ny){ const fx=nx+4,fy=ny+15,fw=8,fh=6;

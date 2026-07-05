@@ -10,8 +10,10 @@ import { rollWild } from '../data/encounters.js';
 import { startBattle } from '../systems/battle.js';
 import { setEfesReturn } from './efes.js';
 import { setEicheReturn } from './eiche.js';
+import { drawUbahnSign, setStationReturn } from './ubahn.js';
+import { setSpaetiReturn } from './spaeti.js';
 import {
-  T, lightCv, Lx, encCool, grassFlash, setGrassFlash, camx, camy,
+  T, lightCv, Lx, encCool, grassFlash, setGrassFlash, camx, camy, drunk, chatNPC, addAkhTaler,
 } from '../main.js';
 
 /* ======================================================================
@@ -357,9 +359,13 @@ export function buildWorld(){
 
   rathaus(11,3);
   eiche(22,7);
+  drawUbahnSign(B,208,160); inter(200,158,20,26,'U-Bahn',[]);
+  setStationReturn('town',{x:206,y:186,dir:'down'});
 
   // Süd-Läden
   baeckerei(5,19); spaeti(13,19); blumen(20,19); efesBuilding(24,19);
+  doors.push({x:230,y:343,w:14,h:10,to:'spaeti'});
+  setSpaetiReturn('town',{x:233,y:352,dir:'down'});
 
   // Straßenbäume + Laternen entlang der Gehwege
   [3,9,15,21,27,31].forEach(c=>{ linden(c,13,false); });
@@ -392,11 +398,19 @@ export function buildWorld(){
 export const npcs=[
   {x:18*TILE+4,y:11*TILE+2,dir:'down',pal:PAL_OMA,who:'Oma Krüger',base:18*TILE+4,
    lines:['Na, Kindchen. So spät noch unterwegs?','Bei Dämmerung bleibt man besser aufm Weg — nich ins hohe Gras. Da hüpft wat, wat nich hüpfen sollte.'],
-   wander:true, t:Math.random()*3, frame:0},
+   wander:true, t:Math.random()*3, frame:0, talk:()=>omaTalk()},
   {x:10*TILE,y:18*TILE-2,dir:'up',pal:PAL_KID,who:'Kiezkind',base:10*TILE,
    lines:['Ey! Im Gras hüpft eins rum!','Ich hab schon DREI gefangen. Du hast noch GAR keins? Lol.'],
-   wander:false, t:0, frame:0},
+   wander:false, t:0, frame:0, talk:()=>kiezkindTalk()},
 ];
+function omaTalk(){
+  if(drunk>0){ chatNPC('Oma Krüger',['Du riechst ja nach Alkohol, Kindchen! Das gehört sich nicht, um diese Uhrzeit!','Geh nach Hause und schlaf dich aus. Ehrlich.']); return; }
+  chatNPC('Oma Krüger',['Na, Kindchen. So spät noch unterwegs?','Bei Dämmerung bleibt man besser aufm Weg — nich ins hohe Gras. Da hüpft wat, wat nich hüpfen sollte.']);
+}
+function kiezkindTalk(){
+  if(drunk>0){ chatNPC('Kiezkind',['Whoaa, bist du BESOFFEN?! Krass, cool!','Kannst du jetzt noch fangen oder haust du daneben? Lol.']); return; }
+  chatNPC('Kiezkind',['Ey! Im Gras hüpft eins rum!','Ich hab schon DREI gefangen. Du hast noch GAR keins? Lol.']);
+}
 // Katze "Arya" am Eichen-Anger
 export const cat={x:23*TILE,y:9*TILE+6,dir:'left',t:0,phase:0};
 // Krähe auf der Restmülltonne
@@ -444,7 +458,7 @@ function hazeTalk(){
       'Maybe quatschst du einfach mal mit ihm direkt. Er chillt in der Eiche, wie immer. *zwinkert*',
       {who:HERO,text:'Aight, danke dawg. Wir quarken demnächst mal, bisschen Crew zusammenbringen und so, du weißt!'},
       'Safe man, hau rein!'
-    ], ()=>{ quest=3; toast('🗒 Quest: Sprich mit Sören an der Eiche',2800); });
+    ], ()=>{ quest=3; addAkhTaler(10); toast('🗒 Quest: Sprich mit Sören an der Eiche (+10 Akh-Taler)',2800); });
   } else {
     openDialog('Haze',[
       'Geh mal zu meim Dad Sören, an der Eiche. Der hat krasse Sachen über die Tiere rausgefunden.',

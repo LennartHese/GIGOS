@@ -12,6 +12,7 @@ import {
   T, lightCv, Lx, encCool, clearSitting, grassFlash, setGrassFlash,
   klcamx, klcamy, setKlCam, setEnterCool,
 } from '../main.js';
+import { drawUbahnSign, setStationReturn } from './ubahn.js';
 
 /* ======================================================================
    KRUMME LANKE  — erstes Wasser-Biom (West-Ausgang aus Zehlendorf)
@@ -104,6 +105,8 @@ export function buildKL(){
   klLily(15*TILE,8*TILE); klLily(20*TILE,10*TILE); klLily(11*TILE,17*TILE); klLily(22*TILE,18*TILE); klLily(18*TILE,7*TILE);
   // Brücken-Laternen
   klLamp(7,11); klLamp(26,11);
+  drawUbahnSign(klB,480,224); kInter(472,222,20,26,'U-Bahn',[]);
+  setStationReturn('kl',{x:486,y:250,dir:'down'});
   // Schilder + Rückweg
   klDoors.push({x:32*TILE,y:12*TILE,w:2*TILE,h:2*TILE,to:'town'});
   kInter(31*TILE,12*TILE,2*TILE,2*TILE,'→ Zehlendorf',['Zurueck nach Osten, rauf nach Zehlendorf Mitte.']);

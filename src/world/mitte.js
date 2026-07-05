@@ -9,9 +9,10 @@ import { toast } from '../ui/toast.js';
 import { rollWild } from '../data/encounters.js';
 import { startBattle } from '../systems/battle.js';
 import { PAL_STUD1, PAL_STUD2 } from './chb.js';
+import { drawUbahnSign, setStationReturn } from './ubahn.js';
 import {
   T, lightCv, Lx, encCool, clearSitting, grassFlash, setGrassFlash,
-  mitcamx, mitcamy, setMitCam, setCcam, setEnterCool,
+  mitcamx, mitcamy, setMitCam, setCcam, setEnterCool, drunk, chatNPC,
 } from '../main.js';
 
 /* ======================================================================
@@ -205,6 +206,8 @@ function mitClubHeidegluehen(){
 export function buildMitte(){
   paintMitteGround();
   mitFernsehturm(37*TILE, 21*TILE);
+  drawUbahnSign(mitB,480,144); mInter(472,142,20,26,'U-Bahn',[]);
+  setStationReturn('mitte',{x:486,y:170,dir:'down'});
   // Cafes/Restaurants/Altbau vorerst raus — kommen mit echten Assets zurueck.
   // Baeume, Laternen, Baenke (Ambiente)
   mitTree(24,20); mitTree(50,20); mitTree(7,28); mitTree(62,26); mitTree(58,45);
@@ -224,7 +227,7 @@ export function buildMitte(){
   // NPCs — Warteschlange vorm Heidegluehen (auf der Spree-Seite) + Ambiente
   mitNpcs.push(
     {x:8*TILE,y:44*TILE,sprite:'tuer',dir:'down',who:'Tuersteherin',frame:0,lines:['Die Tuersteherin mustert dich, dann nickt sie knapp Richtung Tor.','»Na los. Rein mit dir. Aber der Boss da drin macht dich fertig.«','Hinter ihr: Holz, Bass und Seifenblasen.']},
-    {x:11*TILE,y:45*TILE,dir:'left',pal:PAL_CLUB1,who:'Schlange',frame:0,lines:['Steh hier seit zwei. Bewegt sich wie Beton.','Drin soll’s knallen. Wenn se dich reinlassen.']},
+    {x:11*TILE,y:45*TILE,dir:'left',pal:PAL_CLUB1,who:'Schlange',frame:0,lines:['Steh hier seit zwei. Bewegt sich wie Beton.','Drin soll’s knallen. Wenn se dich reinlassen.'], talk:()=>schlangeTalk()},
     {x:12*TILE+6,y:44*TILE+4,dir:'left',pal:PAL_CLUB2,who:'Schlange',frame:0,lines:['Guck nich so eifrig, das riecht die Tuersteherin.','Erstes Mal? Merkt man. Bleib locker.']},
     {x:14*TILE,y:45*TILE,dir:'left',pal:PAL_CLUB3,who:'Schlange',frame:0,lines:['Schwarz traegt man hier. Immer.','Dein Team? Niedlich. Lass drin lieber stecken.']},
     {x:15*TILE+6,y:44*TILE+2,dir:'left',pal:PAL_CLUB1,who:'Schlange',frame:0,lines:['Mate leer, Geduld auch.','Der Laden ist aelter als du denkst.']},
@@ -233,8 +236,16 @@ export function buildMitte(){
     {x:44*TILE,y:45*TILE,dir:'right',pal:PAL_STUD1,who:'Mate-Trinker',play:true,t:0.3,frame:0,lines:['Spree, Sonne, Mate. Mehr Bezirk geht nicht.','Zone 2? Bruder, ich bin in Zone Ufer.']},
     {x:48*TILE,y:45*TILE,dir:'left',pal:PAL_STUD2,who:'Mate-Trinkerin',play:true,t:1.4,frame:0,lines:['Pfandflasche steht, Diskurs laeuft, alles gut.','Der Club da hinten? Da kommste noch nich rein.']},
     {x:36*TILE,y:12*TILE,dir:'down',pal:PAL_BUSKER,who:'Strassenmusiker',play:true,t:0.7,frame:0,lines:['Drei Akkorde, ein Hut, der Alex als Buehne.','Wirf wat rein, dann spiel ich dein Team ein Siegerlied. Vielleicht.']},
-    {x:41*TILE,y:14*TILE,dir:'left',pal:PAL_TOURIST,who:'Tourist',wander:true,base:41*TILE,range:20,t:0,frame:0,lines:['Excuse me — wo Fernsehturm? ...Ach. Da. Logisch.','So many Level. My little guy is not ready, oh no.']}
+    {x:41*TILE,y:14*TILE,dir:'left',pal:PAL_TOURIST,who:'Tourist',wander:true,base:41*TILE,range:20,t:0,frame:0,lines:['Excuse me — wo Fernsehturm? ...Ach. Da. Logisch.','So many Level. My little guy is not ready, oh no.'], talk:()=>touristTalk()}
   );
+}
+function schlangeTalk(){
+  if(drunk>0){ chatNPC('Schlange',['Endlich einer der auch schon vorglueht! Passt zur Schlange.','Komm, stell dich zu uns. Riechste eh schon nach drinnen.']); return; }
+  chatNPC('Schlange',['Steh hier seit zwei. Bewegt sich wie Beton.','Drin soll’s knallen. Wenn se dich reinlassen.']);
+}
+function touristTalk(){
+  if(drunk>0){ chatNPC('Tourist',['Oh... are you okay? You smell like... Sterni?','I did not expect zis on my city trip. Very authentic though!']); return; }
+  chatNPC('Tourist',['Excuse me — wo Fernsehturm? ...Ach. Da. Logisch.','So many Level. My little guy is not ready, oh no.']);
 }
 export function blockedMitte(nx,ny){ const fx=nx+4,fy=ny+15,fw=8,fh=6;
   if(fx<TILE||fy<TILE||fx+fw>MITPX-TILE||fy+fh>MITHPX-TILE) return true;
